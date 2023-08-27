@@ -160,4 +160,5 @@ cython_debug/
 #.idea/
 
 config.yaml
-wland.md
+wland.*
+!wland.py

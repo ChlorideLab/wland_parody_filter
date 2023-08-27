@@ -1,25 +1,23 @@
 # wland_parody_filter
-~~同人专区避雷工具~~简化查找特定DDDD文工具 - 检索特定CP、Tag并导出wid表  
+~~同人专区避雷工具~~ 检索特定CP、Tag并导出wid表  
 问就是找炒饭不易——搜索只能找白米饭，专区里一页页翻既累又烦。。
 
 ## 注意事项
 
 1. **搜索结果仅供参考。**
-2. 在挂了代理的情况下，有可能发生如下 SSL 验证错误：
+2. 在挂了代理的情况下，有可能发生如下 SSL 验证错误。
+  **建议关闭加速器**重试。有更好的办法欢迎分享。
 
-> 注：敏感信息予以屏蔽
-> ```log
-> [2023-08-14 16:12:26,406] CRITICAL: Abnormal network: HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
-> ```
-
-**建议关闭加速器**重试。有更好的办法欢迎分享。
+```log
+[2023-08-14 16:12:26,406] CRITICAL: Abnormal network: HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
+```
 
 3. **若发生任何可能的利益纠纷，还请优先维护 Wland 站方。**
 
 > 竭泽而渔，岂不获得？而明年无鱼。
 
 
-## config.yaml
+## 配置文件 `config.yaml`
 ```yaml
 # 专区，即进入那个专区后url最后一个 / 后面的字符
 parody: GenshinImpact
@@ -47,6 +45,6 @@ origins: null
 relations: null
 ```
 
-## wland.md
-是该脚本的产出文件。需要用 markdown 阅读器才能打开。  
-其实本身是有翻译成 HTML 的计划（谁还没有个浏览器呢），但是 HTML 的表格结构太啰嗦，摆了。
+## 产出文件 `wland.*`
+默认是`wland.html`。~~浏览器总该人人都有吧？~~  
+当然旧版的 Markdown 表示仍然保留（参见`renderer.py`）

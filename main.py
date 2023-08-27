@@ -6,6 +6,7 @@
 import logging
 
 import config
+import renderer
 import wland
 from regex_filter import filterPages
 
@@ -24,14 +25,5 @@ if __name__ == '__main__':
         origins_match=config.ORIGINS,
         relations_match=config.RELATIONS)
 
-    with open("./wland.md", 'w', encoding="utf-8") as fp:
-        fp.write("|Author|Title|Origins|Tags|\n")
-        fp.write("|-|-|-|-|\n")
-        for i in results:
-            fp.write("|%s|%s|%s|%s|\n" % (
-                f"[{i.user_name}](https://{config.DOMAIN}/{i.uid})",
-                f"[{i.title}](https://{config.DOMAIN}/wid{i.wid})",
-                ",".join(i.origins),
-                ",".join(i.tags) if i.tags is not None else ""
-            ))
+    renderer.outputHTML(config.DOMAIN, *results)
     print("Done.")
