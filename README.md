@@ -45,6 +45,15 @@ origins: null
 relations: null
 ```
 
-## 产出文件 `wland.*`
+## 产出结果 `wland.*`
 默认是`wland.html`。~~浏览器总该人人都有吧？~~  
 当然旧版的 Markdown 表示仍然保留（参见`renderer.py`）
+
+由于个人觉得此脚本规模较小，没必要单独做本地化；并且表格的框架固定在源代码里，  
+因此输出的结果有些许英文单词。翻译如下：
+
+- `Search Result`  搜索结果
+- `Author`  作者（允许点击以跳转到ta的主页）
+- `Title`  文章标题（允许点击以阅览该文）
+- `Origins`  原型，对应 Wland 文章条目的 # 部分。
+- `Tags`  标签，对应 Wland 文章条目的 标签 部分。
