@@ -26,16 +26,18 @@ def recordContent(raw_html):
     user = re.search(r'"u[0-9]+".*</a>', raw_html).group()
 
     # " str ", " str<"
-    ori = tuple(j.removesuffix('<').strip() for j
-                in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
-                              re.search(r"hashtag.*</?[ds]",
-                                        raw_html).group().split('</span>')[0]))
-
+    origins = tuple(
+        j.removesuffix('<').strip() for j
+        in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+                      re.search(r"hashtag.*</?[ds]", raw_html)
+                      .group()
+                      .split('</span>')[0]))
     tags = re.search(r'tags.*</s', raw_html)
     if tags is not None:
-        tags = tuple(j.removesuffix('<').strip() for j
-                     in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
-                                   tags.group()))
+        tags = tuple(
+            j.removesuffix('<').strip() for j
+            in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+                          tags.group()))
 
     return WlandPassage(
         wid[3:],  # only keep digits
@@ -43,7 +45,7 @@ def recordContent(raw_html):
         user[1: user[1:].index('"')],  # uid
         user[user.index('>') + 1: user.index('<')],  # user name
         tags,
-        ori)
+        origins)
 
 
 class WlandParody:
@@ -55,6 +57,9 @@ class WlandParody:
         # unknown which browser
         self.cookie = cookies.load(url)
         self.adult_content = adult
+
+    def __repr__(self):
+        return f'{self.url}/special/{self.parody}'
 
     @property
     def num_pages(self):

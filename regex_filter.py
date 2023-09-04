@@ -13,7 +13,10 @@ import requests
 from wland import WlandParody, WlandPassage
 
 
-def _matching_and(src, dst):
+def _matching_xnor(src, dst, neglect=False):
+    if type(src) is str:
+        src = [src]
+
     law_kept = True
     try:
         for i in src:
@@ -21,10 +24,7 @@ def _matching_and(src, dst):
                 break
             for j in dst:
                 match_ = re.search(i, j)
-                if (not match_ or
-                        (match_.group() != j and
-                         match_.start() != 0 and
-                         match_.end() != len(j))):
+                if not ((match_ is not None) ^ neglect):
                     law_kept = False
                     break
     finally:
@@ -32,6 +32,9 @@ def _matching_and(src, dst):
 
 
 def _matching_or(src, dst):
+    if type(src) is str:
+        src = [src]
+
     skip_further_checking = False
     # I hate too much indentation
     try:
@@ -52,7 +55,8 @@ def filterPages(parody: WlandParody,
                 page_start=1, page_end=-1, *,
                 tags_match=None,
                 origins_match=None,
-                relations_match=None) -> list[WlandPassage] | tuple:
+                title_match=None,
+                negative_match=None) -> list[WlandPassage] | tuple:
     ret = []
 
     pages = parody.num_pages  # lessen the HTTP request
@@ -60,13 +64,6 @@ def filterPages(parody: WlandParody,
         return ()
     if page_end is None or page_end < page_start or page_end > pages:
         page_end = pages
-
-    if type(tags_match) is str:
-        tags_match = [tags_match]
-    if type(origins_match) is str:
-        origins_match = [origins_match]
-    if type(relations_match) is str:
-        relations_match = [relations_match]
 
     for cnt in range(page_start, page_end + 1):
         logging.info(f"Page: {cnt} / {page_end}")
@@ -78,11 +75,14 @@ def filterPages(parody: WlandParody,
 
         for p in contents:
             # logging.debug(str(p))
-            if (_matching_and(relations_match, p.tags) and
-                    _matching_and(relations_match, p.origins) and
-                    _matching_and(relations_match, [p.title]) and
-                    _matching_or(tags_match, p.tags) and
-                    _matching_or(origins_match, p.origins)):
+            merged = p.origins + (p.title,)
+            if p.tags:
+                merged += p.tags
+
+            if (_matching_xnor(negative_match, merged, neglect=True)
+                    and _matching_xnor(title_match, [p.title])
+                    and _matching_or(tags_match, p.tags)
+                    and _matching_or(origins_match, p.origins)):
                 ret.append(p)
         logging.debug(f"[Filter] {len(ret)} passages up to now.")
         time.sleep(randint(2, 5))
