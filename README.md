@@ -39,12 +39,12 @@ ignores: null
 # 下列过滤若多填，则只要 任 一 项匹配，就收集该文。
 
 # 标签（正则表达式，多填示例）
-hashtags: # 下列限定中任何一个成立就算匹配
-  - .+堕  # 匹配：恶堕 即堕 快乐堕 ...
-  - c.?untboy  # 匹配：cuntboy countboy（真有这么写Tag的）
+hashtags:
+  - .+堕  # 恶堕 快乐堕 ... √ 堕天使 ×
+  - c.?untboy  # cuntboy countboy ... √ c12untboy ×
 
 # 原型（正则表达式，单填示例）
-origins: (原神)?空  # 匹配：空 原神空
+origins: (原神)?空  # 空 原神空 √ all空 ×
 
 # 标题（正则表达式，不填示例）
 title: null  # 不匹配标题，照单全收
