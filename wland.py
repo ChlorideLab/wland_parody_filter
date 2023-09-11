@@ -5,9 +5,15 @@
 
 import re
 from dataclasses import dataclass
+from typing import TypeAlias, TypeVar
 
 import browser_cookie3 as cookies
 import requests
+
+from compat import removeSuffix
+
+StrTuple: TypeAlias = "tuple[str]"
+AnyStrTuple = TypeVar('AnyStrTuple', StrTuple, None)
 
 
 @dataclass
@@ -16,8 +22,8 @@ class WlandPassage:
     title: str
     uid: str
     user_name: str
-    tags: tuple[str] | None  # may have no tags
-    origins: tuple[str]
+    tags: AnyStrTuple  # may have no tags
+    origins: StrTuple
 
 
 def recordContent(raw_html):
@@ -27,17 +33,17 @@ def recordContent(raw_html):
 
     # " str ", " str<"
     origins = tuple(
-        j.removesuffix('<').strip() for j
-        in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
-                      re.search(r"hashtag.*</?[ds]", raw_html)
-                      .group()
-                      .split('</span>')[0]))
+        removeSuffix(j, '<').strip()
+        for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+                            re.search(r"hashtag.*</?[ds]", raw_html)
+                            .group()
+                            .split('</span>')[0]))
     tags = re.search(r'tags.*</s', raw_html)
     if tags is not None:
         tags = tuple(
-            j.removesuffix('<').strip() for j
-            in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
-                          tags.group()))
+            removeSuffix(j, '<').strip()
+            for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+                                tags.group()))
 
     return WlandPassage(
         wid[3:],  # only keep digits
@@ -59,7 +65,7 @@ class WlandParody:
         self.adult_content = adult
 
     def __repr__(self):
-        return f'{self.url}/special/{self.parody}'
+        return f'special/{self.parody}'
 
     @property
     def num_pages(self):
@@ -69,7 +75,12 @@ class WlandParody:
         pages = re.search(r">\.\.[0-9]+<", root.text).group()
         return int(pages[3:-1])  # ignore signs
 
-    def getPageX(self, page=1) -> list[WlandPassage]:
+    def getPageX(self, page=1):
+        """Get specific page contents.
+
+        Returns:
+            `list[WlandPassage]`
+        """
         ret = []
 
         page_on_server = requests.get(

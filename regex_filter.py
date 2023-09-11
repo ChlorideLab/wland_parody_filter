@@ -10,10 +10,18 @@ from random import randint
 
 import requests
 
-from wland import WlandParody, WlandPassage
+from wland import WlandParody
 
 
 def _matching_xnor(src, dst, neglect=False):
+    """XNOR logic filter
+
+    Only in these following situations returns `True`:
+    - `All` keys matched && `neglect=False`
+    - `No` keys matched && `neglect=True`
+
+    Otherwise returns `False`.
+    """
     if type(src) is str:
         src = [src]
 
@@ -56,7 +64,22 @@ def filterPages(parody: WlandParody,
                 tags_match=None,
                 origins_match=None,
                 title_match=None,
-                negative_match=None) -> list[WlandPassage] | tuple:
+                negative_match=None):
+    """Filter pages in range
+
+    Get contents from `page_start` to `page_end`,
+    and filter them page by page.
+
+    Arguments:
+        - `tags_match` `origins_match` `title_match`
+            Regexes to MATCH
+        - `negative_match`
+            Regexes to IGNORE
+
+    Returns:
+        `list[WlandPassage]` if `page_start` is valid,
+        otherwise an empty tuple `()`.
+    """
     ret = []
 
     pages = parody.num_pages  # lessen the HTTP request
