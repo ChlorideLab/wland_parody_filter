@@ -32,7 +32,8 @@ if __name__ == '__main__':
         config.get('end_page'),
         tags_match=config.get('hashtags'),
         origins_match=config.get('origins'),
-        title_match=config.get('title'))
+        title_match=config.get('title'),
+        negative_match=config.get('ignores'))
 
     renderer.outputHTML(config['domain'], *results)
     print("Done.")
