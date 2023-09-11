@@ -22,11 +22,14 @@ if config.get('start_page') is None:
 
 
 if __name__ == '__main__':
-    genshin = wland.WlandParody(
+    parody = wland.WlandParody(
         # positional settings
-        config['domain'], config['parody'], True)
+        config['domain'],
+        config['parody'],
+        config.get('adult', False))  # by default shouldn't allow R18.
+
     results = filterPages(
-        genshin,
+        parody,
         config['start_page'],
         # optional settings
         config.get('end_page'),
