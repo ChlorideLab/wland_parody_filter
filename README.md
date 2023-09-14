@@ -5,11 +5,14 @@
 ## 注意事项
 
 1. **搜索结果仅供参考。**
-2. 在挂了代理的情况下，有可能发生如下 SSL 验证错误。
+2. 在挂了代理的情况下，有可能发生如下 SSL 验证错误。  
   **建议关闭加速器**重试。有更好的办法欢迎分享。
 
 ```log
-[2023-08-14 16:12:26,406] CRITICAL: Abnormal network: HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
+[2023-08-14 16:12:26,406] CRITICAL: Abnormal network!
+  HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
+[2023-09-15 00:09:40,399] CRITICAL: Abnormal network!
+  ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
 ```
 
 3. **若发生任何可能的利益纠纷，还请优先维护 Wland 站方。**
