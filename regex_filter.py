@@ -6,7 +6,6 @@
 import logging
 import re
 import time
-from random import randint
 
 import requests
 
@@ -89,11 +88,11 @@ def filterPages(parody: WlandParody,
         page_end = pages
 
     for cnt in range(page_start, page_end + 1):
-        logging.info(f"Page: {cnt} / {page_end}")
+        logging.info(f"Fetching page {cnt} / {page_end}")
         try:
             contents = parody.getPageX(cnt)
         except requests.exceptions.RequestException as e:
-            logging.critical(f"Abnormal network: {e}")
+            logging.critical(f"Abnormal network!\n\t{e}")
             break
 
         for p in contents:
@@ -106,7 +105,7 @@ def filterPages(parody: WlandParody,
                     and _matching_xnor(title_match, [p.title])
                     and _matching_or(tags_match, p.tags)
                     and _matching_or(origins_match, p.origins)):
+                logging.debug(str(p))
                 ret.append(p)
-        logging.debug(f"[Filter] {len(ret)} passages up to now.")
-        time.sleep(randint(2, 5))
+        time.sleep(2)
     return ret
