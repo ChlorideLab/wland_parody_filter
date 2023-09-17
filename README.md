@@ -7,21 +7,9 @@
 微软 Edge 浏览器新版本 `117.0.2045.31` 锁掉了用户缓存目录访问权限，  
 本工具无法再继续提供“相对可靠”的便捷抓取、过滤服务，**现已停止维护**。
 
-~~1. 搜索结果仅供参考。~~
-~~2. 在挂了代理的情况下，有可能发生如下 SSL 验证错误。~~  
-  ~~建议关闭加速器重试。有更好的办法欢迎分享。~~
+> ……而明年无鱼。
 
-```log
-[2023-08-14 16:12:26,406] CRITICAL: Abnormal network!
-  HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
-[2023-09-15 00:09:40,399] CRITICAL: Abnormal network!
-  ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
-```
-
-~~3. 若发生任何可能的利益纠纷，还请优先维护 Wland 站方。~~
-
-> 竭泽而渔，岂不获得？而明年无鱼。
-
+本仓库代码仅供学习交流用，切勿用于恶意用途。
 
 ## 配置文件 `config.yaml`
 ```yaml
