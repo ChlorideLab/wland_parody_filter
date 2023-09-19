@@ -31,7 +31,7 @@ def _matching_xnor(src, dst, *, neglect=False):
             if not law_kept:  # must be fully confirmed
                 break
             for j in dst:
-                if re.search(i, j) is None ^ neglect:
+                if (re.search(i, j) is None) ^ neglect:
                     law_kept = False
                     break
     finally:
@@ -77,6 +77,10 @@ def filterPageRange(
         origins_match=None,
         title_match=None,
         negative_match=None) -> list[WlandPassage] | tuple:
+    """Filter logic (the following statements connected with `AND`):
+    - `NO` string match negative regexes
+    - Title `OR` Tag `AND` Origin strings match correlated regexes
+    """
 
     ret, cache = list(), CycleCache(20)
     pages = parody.num_pages  # lessen the HTTP request
@@ -90,10 +94,10 @@ def filterPageRange(
         if self.tags:
             merged += self.tags
 
-        if (_matching_xnor(negative_match, merged, neglect=True)
-                and _matching_or(tags_match, self.tags)
-                or _matching_or(title_match, [self.title], full_match=False)
-                and _matching_or(origins_match, self.origins)):
+        if (_matching_xnor(negative_match, merged, neglect=True) and
+            (_matching_or(tags_match, self.tags) or
+             _matching_or(title_match, [self.title], full_match=False) and
+             _matching_or(origins_match, self.origins))):
             logging.debug(str(self))
             ret.append(self)
 
