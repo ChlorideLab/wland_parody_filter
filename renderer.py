@@ -3,6 +3,8 @@
 # @Time   : 2023/08/27 10:38:32
 # @Author : Chloride
 
+import aiofiles
+
 from wland import WlandPassage
 
 
@@ -12,16 +14,15 @@ MD_TABLE_FRAMEWORK = """
 MD_TABLE_ITEM = """|{0}|{1}|{2}|{3}|"""
 
 
-def outputMarkdown(domain, *wps: WlandPassage):
-    with open("./wland.md", 'w', encoding="utf-8") as fp:
-        fp.write(f"{MD_TABLE_FRAMEWORK}\n")
+async def outputMarkdown(domain, *wps: WlandPassage):
+    async with aiofiles.open("./wland.md", 'w', encoding="utf-8") as fp:
+        await fp.write(f"{MD_TABLE_FRAMEWORK}\n")
         for i in wps:
-            fp.write("%s\n" % MD_TABLE_ITEM.format(
+            await fp.write("%s\n" % MD_TABLE_ITEM.format(
                 f"[{i.user_name}](https://{domain}/{i.uid})",
                 f"[{i.title}](https://{domain}/wid{i.wid})",
                 ",".join(i.origins),
-                ",".join(i.tags) if i.tags is not None else ""
-            ))
+                ",".join(i.tags) if i.tags is not None else ""))
 
 
 HTML_HEAD = """
@@ -41,14 +42,14 @@ HTML_LINK = """\
 HTML_TAIL = """</table></body></html>"""
 
 
-def outputHTML(domain, *wps: WlandPassage):
-    with open("./wland.html", 'w', encoding="utf-8") as fp:
-        fp.write(f"{HTML_HEAD}\n")
-        fp.write(f"{HTML_TABLE_FRAMEWORK}\n")
+async def outputHTML(domain, *wps: WlandPassage):
+    async with aiofiles.open("./wland.html", 'w', encoding="utf-8") as fp:
+        await fp.write(f"{HTML_HEAD}\n")
+        await fp.write(f"{HTML_TABLE_FRAMEWORK}\n")
         for i in wps:
-            fp.write("%s\n" % HTML_TABLE_ITEM.format(
+            await fp.write("%s\n" % HTML_TABLE_ITEM.format(
                 HTML_LINK.format(f"https://{domain}/{i.uid}", i.user_name),
                 HTML_LINK.format(f"https://{domain}/wid{i.wid}", i.title),
                 ",".join(i.origins),
                 ",".join(i.tags) if i.tags is not None else ""))
-        fp.write(f"{HTML_TAIL}\n")
+        await fp.write(f"{HTML_TAIL}\n")

@@ -18,9 +18,9 @@ AnyStrTuple = TypeVar('AnyStrTuple', StrTuple, None)
 
 @dataclass
 class WlandPassage:
-    wid: str
+    wid: int
     title: str
-    uid: str
+    uid: int
     user_name: str
     tags: AnyStrTuple  # may have no tags
     origins: StrTuple
@@ -29,7 +29,7 @@ class WlandPassage:
 def recordContent(raw_html):
     wid = re.search(r"wid[0-9]+", raw_html).group()
     title = re.search(r"<b>.*</b>", raw_html).group()
-    user = re.search(r'"u[0-9]+".*</a>', raw_html).group()
+    user = re.search(r'u[0-9]+".*</a>', raw_html).group()
 
     # " str ", " str<"
     origins = tuple(
@@ -46,9 +46,9 @@ def recordContent(raw_html):
                                 tags.group()))
 
     return WlandPassage(
-        wid[3:],  # only keep digits
+        int(wid[3:]),  # only keep digits
         re.sub(r"</?b>", "", title),  # rm html bold
-        user[1: user[1:].index('"')],  # uid
+        int(user[1: user[1:].index('"')]),  # uid
         user[user.index('>') + 1: user.index('<')],  # user name
         tags,
         origins)

@@ -3,13 +3,14 @@
 # @Time   : 2023/08/04 16:42:59
 # @Author : Chloride
 
+import asyncio
 import logging
 
 import yaml
 
 import renderer
 import wland
-from regex_filter import filterPages
+from regex_filter import filterPageRange
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,7 +28,7 @@ if __name__ == '__main__':
         # optional settings
         CONFIG.get('adult', False))  # def not to explicit R18
 
-    results = filterPages(
+    results = filterPageRange(
         parody,
         CONFIG.get('start_page', 1),  # def from 1st to last
         CONFIG.get('end_page'),
@@ -36,5 +37,5 @@ if __name__ == '__main__':
         title_match=CONFIG.get('title'),
         negative_match=CONFIG.get('ignores'))
 
-    renderer.outputHTML(CONFIG['domain'], *results)
+    asyncio.run(renderer.outputHTML(CONFIG['domain'], *results))
     print("Done.")
