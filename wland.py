@@ -61,7 +61,7 @@ class WlandParody:
         self.url = url
         self.parody = parody
         # unknown which browser
-        self.cookie = cookies.load(url)
+        self.cookie = cookies.chrome(domain_name=url)
         self.adult_content = adult
 
     def __repr__(self):
