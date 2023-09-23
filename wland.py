@@ -34,7 +34,9 @@ def recordContent(raw_html):
     # " str ", " str<"
     origins = tuple(
         removeSuffix(j, '<').strip()
-        for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+        # zh-CN unicode range (latest):
+        # 14.0-15.0   \u4e00 - \u9fff
+        for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FFF]+[ <]',
                             re.search(r"hashtag.*</?[ds]", raw_html)
                             .group()
                             .split('</span>')[0]))
@@ -42,7 +44,7 @@ def recordContent(raw_html):
     if tags is not None:
         tags = tuple(
             removeSuffix(j, '<').strip()
-            for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FA5]+[ <]',
+            for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FFF]+[ <]',
                                 tags.group()))
 
     return WlandPassage(
