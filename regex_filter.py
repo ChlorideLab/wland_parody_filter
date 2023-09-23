@@ -13,7 +13,7 @@ import requests
 from wland import WlandParody
 
 
-def _matching_xnor(src, dst, *, neglect=False):
+def _inhibitor(src, dst):  # , *, neglect=False):
     """XNOR logic filter
 
     Only in these following situations returns `True`:
@@ -31,14 +31,15 @@ def _matching_xnor(src, dst, *, neglect=False):
             if not law_kept:  # must be fully confirmed
                 break
             for j in dst:
-                if (re.search(i, j) is None) ^ neglect:
+                # if (re.search(i, j) is None) ^ neglect:
+                if re.search(i, j) is not None:
                     law_kept = False
                     break
     finally:
         return law_kept
 
 
-def _matching_or(src, dst, *, full_match=True):
+def _finder(src, dst, *, full_match=True):
     if type(src) is str:
         src = [src]
 
@@ -73,15 +74,14 @@ class CycleCache:  # to skip when contents updated.
 
 def filterPageRange(
         parody: WlandParody, page_start=1, page_end=-1, *,
-        tags_match=None,
-        origins_match=None,
-        title_match=None,
-        negative_match=None) -> list[WlandPassage] | tuple:
+        tag_forms=None,
+        origin_forms=None,
+        title_forms=None,
+        ignore_forms=None) -> list[WlandPassage] | tuple:
     """Filter logic (the following statements connected with `AND`):
-    - `NO` string match negative regexes
+    - `NO` string matches negative regexes
     - Title `OR` Tag `AND` Origin strings match correlated regexes
     """
-
     ret, cache = list(), CycleCache(20)
     pages = parody.num_pages  # lessen the HTTP request
     if not 0 < page_start <= pages:
@@ -94,10 +94,10 @@ def filterPageRange(
         if self.tags:
             merged += self.tags
 
-        if (_matching_xnor(negative_match, merged, neglect=True) and
-            (_matching_or(tags_match, self.tags) or
-             _matching_or(title_match, [self.title], full_match=False) and
-             _matching_or(origins_match, self.origins))):
+        if (_inhibitor(ignore_forms, merged)
+            and (_finder(tag_forms, self.tags)
+                 or _finder(title_forms, [self.title], full_match=False)
+                 and _finder(origin_forms, self.origins))):
             logging.debug(str(self))
             ret.append(self)
 
@@ -112,8 +112,7 @@ def filterPageRange(
         for c in contents:
             if cache.exists(c.wid):
                 continue
-            else:
-                cache.store(c.wid)
-                filterContent(c)
+            cache.store(c.wid)
+            filterContent(c)
         sleep(randint(2, 5))
     return ret

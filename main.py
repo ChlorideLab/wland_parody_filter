@@ -32,10 +32,10 @@ if __name__ == '__main__':
         parody,
         CONFIG.get('start_page', 1),  # def from 1st to last
         CONFIG.get('end_page'),
-        tags_match=CONFIG.get('hashtags'),
-        origins_match=CONFIG.get('origins'),
-        title_match=CONFIG.get('title'),
-        negative_match=CONFIG.get('ignores'))
+        tag_forms=CONFIG.get('hashtags'),
+        origin_forms=CONFIG.get('origins'),
+        title_forms=CONFIG.get('title'),
+        ignore_forms=CONFIG.get('ignores'))
 
     asyncio.run(renderer.outputHTML(CONFIG['domain'], *results))
     print("Done.")
