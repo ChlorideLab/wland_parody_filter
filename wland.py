@@ -3,8 +3,12 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
-from re import compile as regex, search, findall, M as MULTI_LINE
+from re import M as MULTI_LINE
+from re import compile as regex
+from re import findall, search
+from typing import List
 from typing import NamedTuple as Struct
+from typing import Set
 
 import browser_cookie3 as cookies
 import requests
@@ -27,8 +31,8 @@ class WlandPassage(Struct):
     title: str
     author_uid: int
     author_name: str
-    hashtags: set[str]  # should NOT be empty
-    tags: set[str]  # MAY BE EMPTY
+    hashtags: Set[str]  # should NOT be empty
+    tags: Set[str]  # MAY BE EMPTY
 
     @classmethod
     def parseHTML(cls, raw_html):
@@ -72,7 +76,7 @@ class WlandParody:
         pages = search(r">\.\.[0-9]+<", root.text).group()
         return int(pages[3:-1])  # ignore signs
 
-    def fetchPagePassages(self, page=1) -> list[WlandPassage]:
+    def fetchPagePassages(self, page=1) -> List[WlandPassage]:
         ret = []
 
         page_on_server = requests.get(
