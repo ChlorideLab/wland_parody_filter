@@ -38,7 +38,9 @@ class WlandPassage(Struct):
         filters = _REGEXES['filters'].findall(raw_html)
         return cls(**{
             'wid': int(_REGEXES['INT'].search(wid).group()),
-            'title': _REGEXES['HTML'].sub('', title),
+            'title': ("NO TITLE"
+                      if not (_ := _REGEXES['HTML'].sub('', title))
+                      else _),
             'author_uid': int(_REGEXES['INT'].search(author).group()),
             'author_name': _REGEXES['HTML'].sub('', author),
             'hashtags': set(_REGEXES['TAG'].sub('', filters[0])
