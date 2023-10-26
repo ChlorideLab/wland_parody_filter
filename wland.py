@@ -3,57 +3,50 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
-import re
-from dataclasses import dataclass
-from typing import TypeAlias, TypeVar
+from re import compile as regex, search, findall, M as MULTI_LINE
+from typing import NamedTuple as Struct
 
 import browser_cookie3 as cookies
 import requests
 
-from compat import removeSuffix
+_REGEXES = {
+    # parse
+    'wid': regex(r'wid[0-9]+'),
+    'title': regex(r'<b>.*</b>'),
+    'author': regex(r'<a href="u[0-9]+">.+</a>'),
+    'filters': regex(r'<span class="CblockRevise Rtype5">.+?</span>'),
+    # export
+    'INT': regex(r'[0-9]+'),
+    'HTML': regex(r'<.+?>'),
+    'TAG': regex(r'.+</i> ')
+}
 
-StrTuple: TypeAlias = "tuple[str]"
-AnyStrTuple = TypeVar('AnyStrTuple', StrTuple, None)
 
-
-@dataclass
-class WlandPassage:
+class WlandPassage(Struct):
     wid: int
     title: str
-    uid: int
-    user_name: str
-    tags: AnyStrTuple  # may have no tags
-    origins: StrTuple
+    author_uid: int
+    author_name: str
+    hashtags: set[str]  # should NOT be empty
+    tags: set[str]  # MAY BE EMPTY
 
-
-def recordContent(raw_html):
-    wid = re.search(r"wid[0-9]+", raw_html).group()
-    title = re.search(r"<b>.*</b>", raw_html).group()
-    user = re.search(r'u[0-9]+".*</a>', raw_html).group()
-
-    # " str ", " str<"
-    origins = tuple(
-        removeSuffix(j, '<').strip()
-        # zh-CN unicode range (latest):
-        # 14.0-15.0   \u4e00 - \u9fff
-        for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FFF]+[ <]',
-                            re.search(r"hashtag.*</?[ds]", raw_html)
-                            .group()
-                            .split('</span>')[0]))
-    tags = re.search(r'tags.*</s', raw_html)
-    if tags is not None:
-        tags = tuple(
-            removeSuffix(j, '<').strip()
-            for j in re.findall(r' [A-Za-z0-9\u4E00-\u9FFF]+[ <]',
-                                tags.group()))
-
-    return WlandPassage(
-        int(wid[3:]),  # only keep digits
-        re.sub(r"</?b>", "", title),  # rm html bold
-        int(user[1: user[1:].index('"')]),  # uid
-        user[user.index('>') + 1: user.index('<')],  # user name
-        tags,
-        origins)
+    @classmethod
+    def parseHTML(cls, raw_html):
+        wid = _REGEXES['wid'].search(raw_html).group()
+        title = _REGEXES['title'].search(raw_html).group()
+        author = _REGEXES['author'].search(raw_html).group()
+        filters = _REGEXES['filters'].findall(raw_html)
+        return cls(**{
+            'wid': int(_REGEXES['INT'].search(wid).group()),
+            'title': _REGEXES['HTML'].sub('', title),
+            'author_uid': int(_REGEXES['INT'].search(author).group()),
+            'author_name': _REGEXES['HTML'].sub('', author),
+            'hashtags': set(_REGEXES['TAG'].sub('', filters[0])
+                            .replace('</span>', '')
+                            .split(' , ')),
+            'tags': set(_REGEXES['TAG'].sub('', filters[1])
+                        .replace('</span>', '')
+                        .split(' , ')) if len(filters) > 1 else set()})
 
 
 class WlandParody:
@@ -62,27 +55,22 @@ class WlandParody:
         The user information will be automatically collected."""
         self.url = url
         self.parody = parody
-        # unknown which browser
+        # MSEdge has banned cookies access
         self.cookie = cookies.chrome(domain_name=url)
         self.adult_content = adult
 
     def __repr__(self):
-        return f'special/{self.parody}'
+        return f'{self.url}/special/{self.parody}'
 
     @property
     def num_pages(self):
         root = requests.get(
             f"https://{self.url}/special/{self.parody}",
             cookies=(self.cookie if self.adult_content else None))
-        pages = re.search(r">\.\.[0-9]+<", root.text).group()
+        pages = search(r">\.\.[0-9]+<", root.text).group()
         return int(pages[3:-1])  # ignore signs
 
-    def getPageX(self, page=1):
-        """Get specific page contents.
-
-        Returns:
-            `list[WlandPassage]`
-        """
+    def fetchPagePassages(self, page=1) -> list[WlandPassage]:
         ret = []
 
         page_on_server = requests.get(
@@ -92,10 +80,10 @@ class WlandParody:
         if page_on_server.status_code == 200:
             # pages without any process should also be closed.
             # so we just do it in the block.
-            items = re.findall(r'^<dl class="MyList".*>',
-                               page_on_server.text, re.M)
+            items = findall(r'^<dl class="MyList".*>',
+                            page_on_server.text, MULTI_LINE)
             for j in items:
                 j = page_on_server.text[page_on_server.text.index(j):]
-                ret.append(recordContent(j[:j.index("</dl>")]))
+                ret.append(WlandPassage.parseHTML(j[:j.index("</dl>")]))
 
         return ret

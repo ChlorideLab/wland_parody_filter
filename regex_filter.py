@@ -82,29 +82,30 @@ def filterPageRange(
     - `NO` string matches negative regexes
     - Title `OR` Tag `AND` Origin strings match correlated regexes
     """
-    ret, cache = list(), CycleCache(20)
     pages = parody.num_pages  # lessen the HTTP request
     if not 0 < page_start <= pages:
         return ()
     if page_end is None or page_end < page_start or page_end > pages:
         page_end = pages
 
+    ret, cache = list(), CycleCache(page_end - page_start)
+
     def filterContent(self: WlandPassage):
-        merged = self.origins + (self.title,)
+        merged = self.hashtags | {self.title}
         if self.tags:
-            merged += self.tags
+            merged |= self.tags
 
         if (_inhibitor(ignore_forms, merged)
             and (_finder(tag_forms, self.tags)
                  or _finder(title_forms, [self.title], full_match=False)
-                 and _finder(origin_forms, self.origins))):
+                 and _finder(origin_forms, self.hashtags))):
             logging.debug(str(self))
             ret.append(self)
 
     for cnt in range(page_start, page_end + 1):
         logging.info(f"Fetching page {cnt} / {page_end}")
         try:
-            contents = parody.getPageX(cnt)
+            contents = parody.fetchPagePassages(cnt)
         except requests.exceptions.RequestException as e:
             logging.critical(f"Abnormal network!\n\t{e}")
             break

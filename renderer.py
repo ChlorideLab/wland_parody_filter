@@ -19,10 +19,10 @@ async def outputMarkdown(domain, *wps: WlandPassage):
         await fp.write(f"{MD_TABLE_FRAMEWORK}\n")
         for i in wps:
             await fp.write("%s\n" % MD_TABLE_ITEM.format(
-                f"[{i.user_name}](https://{domain}/{i.uid})",
+                f"[{i.author_name}](https://{domain}/u{i.author_uid})",
                 f"[{i.title}](https://{domain}/wid{i.wid})",
-                ", ".join(i.origins),
-                ", ".join(i.tags) if i.tags is not None else ""))
+                ", ".join(i.hashtags),
+                ", ".join(i.tags) if i.tags else ""))
 
 
 HTML_HEAD = """
@@ -48,8 +48,10 @@ async def outputHTML(domain, *wps: WlandPassage):
         await fp.write(f"{HTML_TABLE_FRAMEWORK}\n")
         for i in wps:
             await fp.write("%s\n" % HTML_TABLE_ITEM.format(
-                HTML_LINK.format(f"https://{domain}/{i.uid}", i.user_name),
-                HTML_LINK.format(f"https://{domain}/wid{i.wid}", i.title),
-                ", ".join(i.origins),
-                ", ".join(i.tags) if i.tags is not None else ""))
+                HTML_LINK.format(f"https://{domain}/u{i.author_uid}",
+                                 i.author_name),
+                HTML_LINK.format(f"https://{domain}/wid{i.wid}",
+                                 i.title),
+                ", ".join(i.hashtags),
+                ", ".join(i.tags) if i.tags else ""))
         await fp.write(f"{HTML_TAIL}\n")
