@@ -16,37 +16,36 @@ from wland import WlandParody, WlandPassage
 
 
 def _inhibitor(src: Sequence[Pattern], dst):  # , *, neglect=False):
-    law_kept = True
-    try:
-        for i in src:
-            if not law_kept:  # must be fully confirmed
-                break
-            for j in dst:
-                # if (re.search(i, j) is None) ^ neglect:
-                if i.search(j) is not None:
-                    law_kept = False
-                    break
-    finally:
-        return law_kept
+    if not src:
+        return True
+
+    dst = tuple(dst)
+    confirmed = False
+    for i in src:
+        j = 0
+        while j < len(dst) and i.search(dst[j]) is None:
+            j += 1
+        if not (confirmed := j == len(dst)):
+            break
+    return confirmed
 
 
-def _finder(src: Sequence[Pattern], dst, *, full_match=True):
-    skip_check = False
-    # I hate too much indentation
-    try:
-        for i in src:
-            if skip_check:
-                break  # no need to match anymore
-            for j in dst:
-                if (match_ := i.search(j)):
-                    skip_check = not full_match or match_.group() == j
-                    break
-    except TypeError:
-        skip_check = True
-    return skip_check
+def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
+    if not src:
+        return True
+
+    dst = tuple(dst)
+    found = False
+    for i in src:
+        j = 0
+        while j < len(dst) and (_ := i.search(dst[j])) is None:
+            j += 1
+        if found := _ is not None and (not fullstr or _.group() == dst[j]):
+            break
+    return found
 
 
-class CycleCache:  # to skip when contents updated.
+class _CycleCache:  # to skip when contents updated.
     def __init__(self, capacity):
         self.__cache = [-114514] * capacity
         self.__max = capacity
@@ -60,66 +59,61 @@ class CycleCache:  # to skip when contents updated.
         return elem in self.__cache
 
 
-def _parse_regex(tag, origin, title, ignore):
-    if type(tag) is str:
-        tag = [tag]
-    if type(origin) is str:
-        origin = [origin]
-    if type(title) is str:
-        title = [title]
-    if type(ignore) is str:
-        ignore = [ignore]
-    return {
-        'tag': [regex(i) for i in tag],
-        'origin': [regex(i) for i in origin],
-        'title': [regex(i) for i in title],
-        'ignore': [regex(i) for i in ignore]}
+def parseRegexes(seq) -> Sequence[Pattern]:
+    if seq is None:
+        seq = ()
+    elif isinstance(seq, str):
+        seq = [seq]
+
+    for i in range(len(seq)):
+        seq[i] = regex(seq[i])
+    return seq
 
 
-def filterPageRange(
-        parody: WlandParody, page_start=1, page_end=-1, *,
-        tag_forms=None,
-        origin_forms=None,
-        title_forms=None,
-        ignore_forms=None) -> Sequence[WlandPassage]:
-    """Filter logic (the following statements connected with `AND`):
-    - `NO` string matches negative regexes
-    - Title `OR` Tag `AND` Origin strings match correlated regexes
+def filterContent(self: WlandPassage, **kw):
+    merged = self.hashtags | {self.title}
+    if self.tags:
+        merged |= self.tags
+
+    return (_inhibitor(kw['ignores'], merged) and
+            (_finder(kw['hashtags'], self.tags) or
+             _finder(kw['title'], [self.title], fullstr=False)) and
+            _finder(kw['origins'], self.hashtags))
+
+
+def filterPageRange(self: WlandParody, **kwargs) -> Sequence[WlandPassage]:
+    """Filter through pages.
+
+    Only passages with conditions below ALL satisfied will be collected:
+
+    1. nobody matched one of "ignore".
+    2. someone matched one of "title" OR "tag", respectively.
+    3. one of the origin hashtags matched one of "origin".
+
+    Those keywords with `None` value means we skip checking it.
     """
-    pages = parody.num_pages  # lessen the HTTP request
-    if not 0 < page_start <= pages:
+    start = kwargs.get('start_page', 1)
+    end = kwargs.get('end_page')
+    total = self.num_pages  # lessen the HTTP request
+    if not 0 < start <= total:
         return ()
-    if page_end is None or page_end < page_start or page_end > pages:
-        page_end = pages
+    if end is None or end < start or end > total:
+        end = total
+    ret, cache = list(), _CycleCache(end - start + 1)
 
-    ret, cache = list(), CycleCache(page_end - page_start)
-    regexes = _parse_regex(tag_forms, origin_forms, title_forms,
-                           ignore_forms)
-
-    def filterContent(self: WlandPassage):
-        merged = self.hashtags | {self.title}
-        if self.tags:
-            merged |= self.tags
-
-        if (_inhibitor(regexes['ignore'], merged)
-            and (_finder(regexes['tag'], self.tags)
-                 or _finder(regexes['title'], [self.title], full_match=False)
-                 and _finder(regexes['origin'], self.hashtags))):
-            logging.debug(str(self))
-            ret.append(self)
-
-    for cnt in range(page_start, page_end + 1):
-        logging.info(f"Fetching page {cnt} / {page_end}")
+    for cnt in range(start, end + 1):
+        logging.info(f"Fetching page {cnt} / {end}")
         try:
-            contents = parody.fetchPagePassages(cnt)
+            contents = self.fetchPagePassages(cnt)
         except requests.exceptions.RequestException as e:
             logging.critical(f"Abnormal network!\n\t{e}")
             break
 
         for c in contents:
-            if cache.exists(c.wid):
+            if cache.exists(c.wid) or not filterContent(c, **kwargs):
                 continue
+            logging.debug(str(c))
             cache.store(c.wid)
-            filterContent(c)
+            ret.append(c)
         sleep(randint(2, 5))
     return ret

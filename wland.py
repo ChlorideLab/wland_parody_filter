@@ -17,7 +17,7 @@ _REGEXES = {
     # parse
     'wid': regex(r'wid[0-9]+'),
     'title': regex(r'<b>.*</b>'),
-    'author': regex(r'<a href="u[0-9]+">.+</a>'),
+    'author': regex(r'<a href=".*u[0-9]+">.+</a>'),
     'filters': regex(r'<span class="CblockRevise Rtype5">.+?</span>'),
     # export
     'INT': regex(r'[0-9]+'),
