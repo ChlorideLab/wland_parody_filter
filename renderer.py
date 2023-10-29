@@ -170,5 +170,5 @@ class HTML(SheetGenerator):
 
     async def close(self):
         if await self.stream.writable():
-            self.stream.write('</table></body></html>\n')
+            await self.stream.write('</table></body></html>\n')
         return await super().close()
