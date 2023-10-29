@@ -16,9 +16,9 @@ class SheetGenerator(metaclass=ABCMeta):
     """Base class of Filter Result generator.
 
     File stream needs manual management."""
-    def __init__(self, filename):
+    def __init__(self, filename, encoding='utf-8'):
         self.fn = filename
-        self.enc = 'utf-8'
+        self.enc = encoding
         self.__stream: Optional[AsyncTextIOWrapper] = None
 
     @property
@@ -37,7 +37,7 @@ class SheetGenerator(metaclass=ABCMeta):
     async def open(self):
         try:
             self.__stream = await aiofiles.open(
-                self.fn, 'w', encoding='utf-8')
+                self.fn, 'w', encoding=self.enc)
             return await self.__stream.writable()
         except Exception:
             await self.close()
@@ -52,6 +52,9 @@ class SheetGenerator(metaclass=ABCMeta):
 
 
 class CSV(SheetGenerator):
+    def __init__(self, filename):
+        super().__init__(filename, 'utf-8-sig')
+
     @property
     def table(self):
         return "Author UID,Author Name,WID,Title,Origins,Tags"
