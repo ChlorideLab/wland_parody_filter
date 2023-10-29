@@ -3,22 +3,25 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
-from re import M as MULTI_LINE
+from re import S as FULL_MATCH
 from re import compile as regex
-from re import findall, search
-from typing import List
+from typing import AnyStr, List
 from typing import NamedTuple as Struct
-from typing import Set
+from typing import Optional, Set
 
 import browser_cookie3 as cookies
 import requests
 
 _REGEXES = {
     # parse
+    '_pages': regex(r">\.\.[0-9]+<"),
+    '_mylist': regex(
+        r'<dl class="MyList" id="[a-z0-9_]+">.*?</dl>',
+        FULL_MATCH),
     'wid': regex(r'wid[0-9]+'),
     'title': regex(r'<b>.*</b>'),
     'author': regex(r'<a href=".*u[0-9]+">.+</a>'),
-    'filters': regex(r'<span class="CblockRevise Rtype5">.+?</span>'),
+    'category': regex(r'<span class="CblockRevise Rtype5">.+?</span>'),
     # export
     'INT': regex(r'[0-9]+'),
     'HTML': regex(r'<.+?>'),
@@ -34,25 +37,30 @@ class WlandPassage(Struct):
     hashtags: Set[str]  # should NOT be empty
     tags: Set[str]  # MAY BE EMPTY
 
-    @classmethod
-    def parseHTML(cls, raw_html):
-        wid = _REGEXES['wid'].search(raw_html).group()
-        title = _REGEXES['title'].search(raw_html).group()
-        author = _REGEXES['author'].search(raw_html).group()
-        filters = _REGEXES['filters'].findall(raw_html)
-        return cls(**{
-            'wid': int(_REGEXES['INT'].search(wid).group()),
-            'title': ("NO TITLE"
-                      if not (_ := _REGEXES['HTML'].sub('', title))
-                      else _),
-            'author_uid': int(_REGEXES['INT'].search(author).group()),
-            'author_name': _REGEXES['HTML'].sub('', author),
-            'hashtags': set(_REGEXES['TAG'].sub('', filters[0])
-                            .replace('</span>', '')
-                            .split(' , ')),
-            'tags': set(_REGEXES['TAG'].sub('', filters[1])
-                        .replace('</span>', '')
-                        .split(' , ')) if len(filters) > 1 else set()})
+
+class _CycleCache:  # to skip when contents updated.
+    def __init__(self, capacity):
+        self.__lst: List[Optional[WlandPassage]] = [None] * capacity
+        self.__max = capacity
+        self.__cur = 0
+
+    def store(self, elem):
+        self.__lst[self.__cur] = elem
+        self.__cur = (self.__cur + 1) % self.__max
+
+    def next(self):
+        self.__cur = (self.__cur + 1) % self.__max
+
+    def find(self, wid: int):
+        i = 0
+        while (i < self.__max):
+            if self.__lst[i] is None or self.__lst[i].wid == wid:
+                break
+            i += 1
+        return i < self.__max and self.__lst[i] is not None
+
+    def toTuple(self):
+        return tuple(self.__lst)
 
 
 class WlandParody:
@@ -61,35 +69,50 @@ class WlandParody:
         The user information will be automatically collected."""
         self.url = url
         self.parody = parody
-        # MSEdge has banned cookies access
-        self.cookie = cookies.chrome(domain_name=url)
-        self.adult_content = adult
+        self.cookie = cookies.chrome(domain_name=url) if adult else None
+        self._cache = _CycleCache(10)
+        self._page_cached = 0
+        self._page_total = 0
 
     def __repr__(self):
         return f'{self.url}/special/{self.parody}'
 
     @property
-    def num_pages(self):
-        root = requests.get(
-            f"https://{self.url}/special/{self.parody}",
-            cookies=(self.cookie if self.adult_content else None))
-        pages = search(r">\.\.[0-9]+<", root.text).group()
-        return int(pages[3:-1])  # ignore signs
+    def page_num(self):
+        if not self._page_total:
+            self.fetchPage()
+        return self._page_total
 
-    def fetchPagePassages(self, page=1) -> List[WlandPassage]:
-        ret = []
+    def fetchPage(self, page=1):
+        if self._page_cached != page:
+            fetched = requests.get(
+                f"https://{self.url}/special/{self.parody}/page={page}",
+                cookies=self.cookie)
+            if fetched.status_code != 200:
+                return ()
+            self._page_total = int(
+                _REGEXES['_pages'].search(fetched.text).group()[3:-1])
+            self._page_cached = page
+            for i in _REGEXES['_mylist'].findall(fetched.text):
+                self._parse(i)
+        return self._cache.toTuple()
 
-        page_on_server = requests.get(
-            f"https://{self.url}/special/{self.parody}/page={page}",
-            cookies=(self.cookie if self.adult_content else None)
-        )
-        if page_on_server.status_code == 200:
-            # pages without any process should also be closed.
-            # so we just do it in the block.
-            items = findall(r'^<dl class="MyList".*>',
-                            page_on_server.text, MULTI_LINE)
-            for j in items:
-                j = page_on_server.text[page_on_server.text.index(j):]
-                ret.append(WlandPassage.parseHTML(j[:j.index("</dl>")]))
-
-        return ret
+    def _parse(self, dl_mylist: AnyStr):
+        wid = int(_REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
+        if self._cache.find(wid):
+            self._cache.next()
+            return
+        title = _REGEXES['title'].search(dl_mylist).group()
+        if not (title := _REGEXES['HTML'].sub('', title)):
+            title = "NO TITLE"
+        author = _REGEXES['author'].search(dl_mylist).group()
+        category = _REGEXES['category'].findall(dl_mylist)
+        self._cache.store(WlandPassage(wid, title, **{
+            'author_uid': int(_REGEXES['INT'].search(author).group()),
+            'author_name': _REGEXES['HTML'].sub('', author),
+            'hashtags': set(_REGEXES['TAG'].sub('', category[0])
+                            .replace('</span>', '')
+                            .split(' , ')),
+            'tags': set(_REGEXES['TAG'].sub('', category[1])
+                        .replace('</span>', '')
+                        .split(' , ')) if len(category) > 1 else set()}))

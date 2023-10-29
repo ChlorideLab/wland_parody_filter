@@ -3,55 +3,172 @@
 # @Time   : 2023/08/27 10:38:32
 # @Author : Chloride
 
+from abc import ABCMeta, abstractmethod
+from typing import Optional
+
 import aiofiles
+from aiofiles.threadpool.text import AsyncTextIOWrapper
 
 from wland import WlandPassage
 
 
-MD_TABLE_FRAMEWORK = """
-|Author|Title|Origins|Tags|
-|-|-|-|-|"""
-MD_TABLE_ITEM = """|{0}|{1}|{2}|{3}|"""
+class SheetGenerator(metaclass=ABCMeta):
+    """Base class of Filter Result generator.
+
+    File stream needs manual management."""
+    def __init__(self, filename, encoding='utf-8'):
+        self.fn = filename
+        self.enc = encoding
+        self.__stream: Optional[AsyncTextIOWrapper] = None
+
+    @property
+    def stream(self):
+        return self.__stream  # shouldn't access directly.
+
+    @abstractmethod
+    def tableItem(self, p: WlandPassage):
+        pass
+
+    @property
+    @abstractmethod
+    def table(self):
+        pass
+
+    async def open(self):
+        try:
+            self.__stream = await aiofiles.open(
+                self.fn, 'w', encoding=self.enc)
+            return await self.__stream.writable()
+        except Exception:
+            await self.close()
+            return False
+
+    async def close(self):
+        await self.__stream.close()
+        self.__stream = None
+
+    async def append(self, p: WlandPassage):
+        await self.__stream.write(f"{self.tableItem(p)}\n")
 
 
-async def outputMarkdown(domain, *wps: WlandPassage):
-    async with aiofiles.open("./wland.md", 'w', encoding="utf-8") as fp:
-        await fp.write(f"{MD_TABLE_FRAMEWORK}\n")
-        for i in wps:
-            await fp.write("%s\n" % MD_TABLE_ITEM.format(
-                f"[{i.author_name}](https://{domain}/u{i.author_uid})",
-                f"[{i.title}](https://{domain}/wid{i.wid})",
-                ", ".join(i.hashtags),
-                ", ".join(i.tags) if i.tags else ""))
+class CSV(SheetGenerator):
+    def __init__(self, filename):
+        super().__init__(filename, 'utf-8-sig')
+
+    @property
+    def table(self):
+        return "Author UID,Author Name,WID,Title,Origins,Tags"
+
+    def tableItem(self, p: WlandPassage):
+        return "%s,%s,%s,%s,%s,%s" % (
+            p.author_uid, p.author_name, p.wid, p.title,
+            " ".join(p.hashtags), " ".join(p.tags))
+
+    async def open(self):
+        if not await super().open():
+            return
+        await self.stream.write(f"{self.table}\n")
 
 
-HTML_HEAD = """
-<html><head>
-<meta charset="utf-8">
-<title>Wland Parody Filter</title>
-</head><body>"""
+class MarkDown(SheetGenerator):
+    def __init__(self, filename, domain):
+        super().__init__(filename)
+        self.wland_domain = domain
 
-HTML_TABLE_FRAMEWORK = """<table border="1"><caption/>Search Result
-<tr><th/>Author<th/>Title<th/>Origins<th/>Tags</tr>"""
+    @staticmethod
+    def _table_item(*elems):
+        ret = ""
+        for i in elems:
+            ret += f"|{i}"
+        ret += "|"
+        return ret
 
-HTML_TABLE_ITEM = """<tr><td/>{0}<td/>{1}<td/>{2}<td/>{3}</tr>"""
+    @property
+    def table(self):
+        return "%s\n%s\n" % (
+            self._table_item('Author', 'Title', 'Origins', 'Tags'),
+            self._table_item('-', '-', '-', '-'))
 
-HTML_LINK = """\
-<a href="{0}" target="_blank" rel="noopener noreferrer">{1}</a>"""
+    def tableItem(self, p: WlandPassage):
+        return self._table_item(
+            self.link(p.author_name,
+                      f"https://{self.wland_domain}/u{p.author_uid}"),
+            self.link(p.title,
+                      f"https://{self.wland_domain}/wid{p.wid}"),
+            ", ".join(p.hashtags),
+            ", ".join(p.tags))
 
-HTML_TAIL = """</table></body></html>"""
+    def link(self, str_shown, str_link):
+        return "[%s](%s)" % (str_shown, str_link)
+
+    async def open(self):
+        if not await super().open():
+            return
+        await self.stream.write(self.table)
 
 
-async def outputHTML(domain, *wps: WlandPassage):
-    async with aiofiles.open("./wland.html", 'w', encoding="utf-8") as fp:
-        await fp.write(f"{HTML_HEAD}\n")
-        await fp.write(f"{HTML_TABLE_FRAMEWORK}\n")
-        for i in wps:
-            await fp.write("%s\n" % HTML_TABLE_ITEM.format(
-                HTML_LINK.format(f"https://{domain}/u{i.author_uid}",
-                                 i.author_name),
-                HTML_LINK.format(f"https://{domain}/wid{i.wid}",
-                                 i.title),
-                ", ".join(i.hashtags),
-                ", ".join(i.tags) if i.tags else ""))
-        await fp.write(f"{HTML_TAIL}\n")
+class HTML(SheetGenerator):
+    SHEET_COLS = 4
+
+    def __init__(self, filename, domain):
+        super().__init__(filename)
+        self.wland_domain = domain
+
+    @staticmethod
+    def label(item: str, end=True, **properties):
+        """generate HTML label.
+
+        The string looks like: `<item pKey="pVal">{0}</item>`,
+        or when `end` is False, `<item pKey="pVal"/>{0}`.
+
+        Consider using `str.format()` to send argument."""
+        ret = f"<{item}"
+        for k, v in properties.items():
+            ret += f' {k}="{v}"'
+        ret += ">{0}</%s>" % item if end else "/>{0}"
+        return ret
+
+    def _table_item(self, *elems):
+        elems = list(elems)
+        for i in range(HTML.SHEET_COLS):
+            elems[i] = self.label('th', False).format(elems[i])
+        return self.label('tr').format(''.join(elems))
+
+    @property
+    def head(self):
+        return self.label('head').format("%s%s" % (
+            self.label('meta', False, charset='utf-8')
+                .format('').replace('/>', '>'),
+            self.label('title').format('Wland Parody Filter')))
+
+    def link(self, str_shown, str_link):
+        return self.label(
+            'a', href=str_link, target='_blank', rel='noopener noreferrer'
+            ).format(str_shown)
+
+    @property
+    def table(self):
+        return self.label('table', border=1).format('%s%s' % (
+            self.label('caption', False).format('Search Result'),
+            self._table_item('Author', 'Title', 'Origins', 'Tags')))
+
+    def tableItem(self, p: WlandPassage):
+        return self._table_item(
+            self.link(p.author_name,
+                      f'https://{self.wland_domain}/{p.author_uid}'),
+            self.link(p.title,
+                      f'https://{self.wland_domain}/{p.wid}'),
+            ", ".join(p.hashtags),
+            ", ".join(p.tags))
+
+    async def open(self):
+        if not await super().open():
+            return
+        await self.stream.write(f'<html>{self.head}\n')
+        await self.stream.write('<body>%s\n' % (
+            self.table.replace("</table>", "")))
+
+    async def close(self):
+        if await self.stream.writable():
+            await self.stream.write('</table></body></html>\n')
+        return await super().close()
