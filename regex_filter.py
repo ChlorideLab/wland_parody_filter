@@ -37,6 +37,7 @@ def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
 
     dst = tuple(dst)
     found = False
+    _ = None  # dst could be empty (tags).
     for i in src:
         j = 0
         while j < len(dst) and (_ := i.search(dst[j])) is None:
