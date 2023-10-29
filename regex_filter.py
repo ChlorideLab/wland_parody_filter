@@ -3,15 +3,16 @@
 # @Time   : 2023/08/18 20:26:18
 # @Author : Chloride
 
+from asyncio import sleep
 import logging
 from random import randint
 from re import Pattern
 from re import compile as regex
-from time import sleep
 from typing import Sequence
 
 import requests
 
+from renderer import SheetGenerator
 from wland import WlandParody, WlandPassage
 
 
@@ -81,7 +82,7 @@ def filterContent(self: WlandPassage, **kw):
             _finder(kw['origins'], self.hashtags))
 
 
-def filterPageRange(self: WlandParody, **kwargs) -> Sequence[WlandPassage]:
+async def filterPageRange(self: WlandParody, file: SheetGenerator, **kw):
     """Filter through pages.
 
     Only passages with conditions below ALL satisfied will be collected:
@@ -92,14 +93,14 @@ def filterPageRange(self: WlandParody, **kwargs) -> Sequence[WlandPassage]:
 
     Those keywords with `None` value means we skip checking it.
     """
-    start = kwargs.get('start_page', 1)
-    end = kwargs.get('end_page')
-    total = self.num_pages  # lessen the HTTP request
+    start, end, total = kw['start_page'], kw['end_page'], self.num_pages
     if not 0 < start <= total:
-        return ()
+        return
     if end is None or end < start or end > total:
         end = total
-    ret, cache = list(), _CycleCache(end - start + 1)
+    await file.open()
+
+    cache = _CycleCache(((end - start + 1) & 0xF) * 10)  # 10 - 150
 
     for cnt in range(start, end + 1):
         logging.info(f"Fetching page {cnt} / {end}")
@@ -110,10 +111,13 @@ def filterPageRange(self: WlandParody, **kwargs) -> Sequence[WlandPassage]:
             break
 
         for c in contents:
-            if cache.exists(c.wid) or not filterContent(c, **kwargs):
+            if cache.exists(c.wid):
+                continue
+            cache.store(c.wid)
+            if not filterContent(c, **kw):
                 continue
             logging.debug(str(c))
-            cache.store(c.wid)
-            ret.append(c)
-        sleep(randint(2, 5))
-    return ret
+            if file.stream is not None:
+                await file.append(c)
+        await sleep(randint(2, 5))
+    await file.close()
