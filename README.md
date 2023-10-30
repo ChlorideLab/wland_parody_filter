@@ -12,7 +12,7 @@
 ## Wland 文章条目
 为便于后面解释，姑且放一张样图：
 
-![Example](https://gitlab.com/ChlorideP/wland_parody_filter/raw/develop/img/example.jpg)
+![Example](https://gitlab.com/ChlorideP/wland_parody_filter/raw/master/img/example.jpg)
 
 - 标题 `Title`：虚线上方的加粗文本
 - 作者 `Author`：如图所示
