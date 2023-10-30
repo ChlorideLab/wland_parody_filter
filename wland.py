@@ -10,7 +10,7 @@ from typing import Optional, Set
 import browser_cookie3 as cookies
 import requests
 
-from globalvars import REGEXES, HTTP_HEADER
+from globalvars import REGEXES, HEADER, PROXY
 
 
 class WlandPassage(Struct):
@@ -66,8 +66,9 @@ class WlandParody:
 
     def fetchPage(self, page=1):
         if self._page_cached != page:
-            response = requests.get(f"https://{self.url}/page={page}",
-                                    cookies=self.cookie, headers=HTTP_HEADER)
+            response = requests.get(
+                f"https://{self.url}/page={page}",
+                cookies=self.cookie, proxies=PROXY, headers=HEADER)
             if response.status_code != 200:
                 return ()
             self._page_total = int(

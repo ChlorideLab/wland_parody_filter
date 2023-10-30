@@ -7,7 +7,6 @@ import asyncio
 import logging
 from random import randint
 from re import Pattern
-from re import compile as regex
 from typing import Mapping, Sequence
 
 import requests
@@ -45,17 +44,6 @@ def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
         if found := _ is not None and (not fullstr or _.group() == dst[j]):
             break
     return found
-
-
-def parseRegexes(seq) -> Sequence[Pattern]:
-    if seq is None:
-        seq = ()
-    elif isinstance(seq, str):
-        seq = [seq]
-
-    for i in range(len(seq)):
-        seq[i] = regex(seq[i])
-    return seq
 
 
 def filterPassage(self: WlandPassage,
