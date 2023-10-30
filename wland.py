@@ -3,8 +3,6 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
-from re import S as FULL_MATCH
-from re import compile as regex
 from typing import AnyStr, List
 from typing import NamedTuple as Struct
 from typing import Optional, Set
@@ -12,21 +10,7 @@ from typing import Optional, Set
 import browser_cookie3 as cookies
 import requests
 
-_REGEXES = {
-    # parse
-    '_pages': regex(r">\.\.[0-9]+<"),
-    '_mylist': regex(
-        r'<dl class="MyList" id="[a-z0-9_]+">.*?</dl>',
-        FULL_MATCH),
-    'wid': regex(r'wid[0-9]+'),
-    'title': regex(r'<b>.*</b>'),
-    'author': regex(r'<a href=".*u[0-9]+">.+</a>'),
-    'category': regex(r'<span class="CblockRevise Rtype5">.+?</span>'),
-    # export
-    'INT': regex(r'[0-9]+'),
-    'HTML': regex(r'<.+?>'),
-    'TAG': regex(r'.+</i> ')
-}
+from globalvars import REGEXES, HEADER, PROXY
 
 
 class WlandPassage(Struct):
@@ -82,32 +66,33 @@ class WlandParody:
 
     def fetchPage(self, page=1):
         if self._page_cached != page:
-            response = requests.get(f"https://{self.url}/page={page}",
-                                    cookies=self.cookie)
+            response = requests.get(
+                f"https://{self.url}/page={page}",
+                cookies=self.cookie, proxies=PROXY, headers=HEADER)
             if response.status_code != 200:
                 return ()
             self._page_total = int(
-                _REGEXES['_pages'].search(response.text).group()[3:-1])
+                REGEXES['_pages'].search(response.text).group()[3:-1])
             self._page_cached = page
-            for i in _REGEXES['_mylist'].findall(response.text):
+            for i in REGEXES['_mylist'].findall(response.text):
                 self._parse(i)
         return self._cache.toTuple()
 
     def _parse(self, dl_mylist: AnyStr):
-        wid = int(_REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
+        wid = int(REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
         if self._cache.find(wid):
             return
-        title = _REGEXES['title'].search(dl_mylist).group()
-        if not (title := _REGEXES['HTML'].sub('', title)):
+        title = REGEXES['title'].search(dl_mylist).group()
+        if not (title := REGEXES['HTML'].sub('', title)):
             title = "NO TITLE"
-        author = _REGEXES['author'].search(dl_mylist).group()
-        category = _REGEXES['category'].findall(dl_mylist)
+        author = REGEXES['author'].search(dl_mylist).group()
+        category = REGEXES['category'].findall(dl_mylist)
         self._cache.store(WlandPassage(wid, title, **{
-            'author_uid': int(_REGEXES['INT'].search(author).group()),
-            'author_name': _REGEXES['HTML'].sub('', author),
-            'hashtags': set(_REGEXES['TAG'].sub('', category[0])
+            'author_uid': int(REGEXES['INT'].search(author).group()),
+            'author_name': REGEXES['HTML'].sub('', author),
+            'hashtags': set(REGEXES['TAG'].sub('', category[0])
                             .replace('</span>', '')
                             .split(' , ')),
-            'tags': set(_REGEXES['TAG'].sub('', category[1])
+            'tags': set(REGEXES['TAG'].sub('', category[1])
                         .replace('</span>', '')
                         .split(' , ')) if len(category) > 1 else set()}))

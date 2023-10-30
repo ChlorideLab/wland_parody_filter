@@ -155,9 +155,9 @@ class HTML(SheetGenerator):
     def tableItem(self, p: WlandPassage):
         return self._table_item(
             self.link(p.author_name,
-                      f'https://{self.wland_domain}/{p.author_uid}'),
+                      f'https://{self.wland_domain}/u{p.author_uid}'),
             self.link(p.title,
-                      f'https://{self.wland_domain}/{p.wid}'),
+                      f'https://{self.wland_domain}/wid{p.wid}'),
             ", ".join(p.hashtags),
             ", ".join(p.tags))
 
