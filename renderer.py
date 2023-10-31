@@ -12,6 +12,12 @@ from aiofiles.threadpool.text import AsyncTextIOWrapper
 from wland import WlandPassage
 
 
+AUTHOR = "Author"
+TITLE = "Title"
+ORIGINS = "Origins"
+TAGS = "Tags"
+
+
 class SheetGenerator(metaclass=ABCMeta):
     """Base class of Filter Result generator.
 
@@ -57,7 +63,8 @@ class CSV(SheetGenerator):
 
     @property
     def table(self):
-        return "Author UID,Author Name,WID,Title,Origins,Tags"
+        return ','.join([f'{AUTHOR} UID', f'{AUTHOR} user name',
+                         'WID', TITLE, ORIGINS, TAGS])
 
     def tableItem(self, p: WlandPassage):
         return "%s,%s,%s,%s,%s,%s" % (
@@ -86,7 +93,7 @@ class MarkDown(SheetGenerator):
     @property
     def table(self):
         return "%s\n%s\n" % (
-            self._table_item('Author', 'Title', 'Origins', 'Tags'),
+            self._table_item(AUTHOR, TITLE, ORIGINS, TAGS),
             self._table_item('-', '-', '-', '-'))
 
     def tableItem(self, p: WlandPassage):
@@ -108,8 +115,6 @@ class MarkDown(SheetGenerator):
 
 
 class HTML(SheetGenerator):
-    SHEET_COLS = 4
-
     def __init__(self, filename, domain):
         super().__init__(filename)
         self.wland_domain = domain
@@ -128,11 +133,9 @@ class HTML(SheetGenerator):
         ret += ">{0}</%s>" % item if end else "/>{0}"
         return ret
 
-    def _table_item(self, *elems):
-        elems = list(elems)
-        for i in range(HTML.SHEET_COLS):
-            elems[i] = self.label('th', False).format(elems[i])
-        return self.label('tr').format(''.join(elems))
+    def _table_item(self, *elems, header=False):
+        return self.label('tr').format(''.join([self.label(
+            'th' if header else 'td', False).format(i) for i in elems]))
 
     @property
     def head(self):
@@ -150,7 +153,7 @@ class HTML(SheetGenerator):
     def table(self):
         return self.label('table', border=1).format('%s%s' % (
             self.label('caption', False).format('Search Result'),
-            self._table_item('Author', 'Title', 'Origins', 'Tags')))
+            self._table_item(AUTHOR, TITLE, ORIGINS, TAGS, header=True)))
 
     def tableItem(self, p: WlandPassage):
         return self._table_item(
