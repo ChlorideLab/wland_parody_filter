@@ -54,9 +54,8 @@ def filterPassage(self: WlandPassage,
     which in other words, must satisfy ALL the following conditions:
 
     1. NOBODY matched anyone of `regexes['ignores']`.
-    2. AT LEAST ONE matched one of `regexes['title']`
-    OR `regexes['hashtags']`, respectively.
-    3. one of the origin hashtags matched one of `regexes['origins']`.
+    2. AT LEAST ONE item matched one of `regexes['hashtags']`
+    `regexes['title']` and `regexes['origins']`, respectively.
 
     Those keywords with empty sequence (NOT `None`!) means we skip checking it.
     """
@@ -65,8 +64,8 @@ def filterPassage(self: WlandPassage,
         merged |= self.tags
 
     return (_inhibitor(regexes['ignores'], merged)
-            and (_finder(regexes['hashtags'], self.tags)
-                 or _finder(regexes['title'], [self.title], fullstr=False))
+            and _finder(regexes['hashtags'], self.tags)
+            and _finder(regexes['title'], [self.title], fullstr=False)
             and _finder(regexes['origins'], self.hashtags))
 
 
@@ -76,7 +75,7 @@ async def filterPageRange(self: WlandParody,
     """Filter through pages.
 
     C version condition expression:
-        `!ignored && (a_tag_picked || title_picked) && an_origin_picked`\n
+        `!ignored && a_tag_picked && title_picked && an_origin_picked`\n
     See `help(filterPassage)` for detailed conditions.
 
     Arguments:
@@ -84,7 +83,7 @@ async def filterPageRange(self: WlandParody,
         - `file`: table file to output success results.
 
     Keyword Arguments:
-        Should be able to just extract `main.CONFIG`.
+        Should be able to just extract `globalvars.CONFIG`.
 
         - `start_page`: def to 1.
         - `end_page`: def to `None` (auto).
