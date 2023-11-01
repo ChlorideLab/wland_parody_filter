@@ -5,14 +5,13 @@
 
 import asyncio
 import logging
-from random import randint
+from random import random
 from re import Pattern
+from threading import Thread
 from typing import Mapping, Sequence
 
-import requests
-
 from renderer import SheetGenerator
-from wland import WlandParody, WlandPassage, _CycleCache
+from wland import WlandParody, WlandPassage
 
 
 def _inhibitor(src: Sequence[Pattern], dst):  # , *, neglect=False):
@@ -97,25 +96,25 @@ async def filterPageRange(self: WlandParody,
         return
     if end is None or end < start or end > total:
         end = total
-    cache = _CycleCache((end - start + 1 & 0xF) * 10)  # 10-150.
 
     await file.open()
-    for cnt in range(start, end + 1):
-        logging.info(f"Fetching page {cnt} / {end}")
+    while (start <= end):
+        logging.info(f"Fetching page {start} / {end}")
         try:
-            contents = self.fetchPage(cnt)
-        except requests.exceptions.RequestException as e:
-            logging.critical(f"Abnormal network!\n\t{e}")
+            contents = self.getPage(start)
+            thread = Thread(target=self.fetchPage, args=(start + 1,))
+            thread.daemon = True
+            await asyncio.sleep(random() + 1)  # [1, 2) secs
+            thread.start()
+        except Exception as e:
+            logging.critical(e)
             break
-
         for c in contents:
-            if cache.find(c.wid):
-                continue
-            cache.store(c)
             if not filterPassage(c, kwargs):
                 continue
             logging.debug(f"Pick {c}")
             if file.stream is not None:
                 await file.append(c)
-        await asyncio.sleep(randint(1, 3))
+        thread.join()  # must be finished when next page coming
+        start += 1
     await file.close()

@@ -64,19 +64,24 @@ class WlandParody:
             self.fetchPage()
         return self._page_total
 
-    def fetchPage(self, page=1):
+    def getPage(self, page=1):
         if self._page_cached != page:
-            response = requests.get(
-                f"https://{self.url}/page={page}",
-                cookies=self.cookie, proxies=PROXY, headers=HEADER)
-            if response.status_code != 200:
-                return ()
-            self._page_total = int(
-                REGEXES['_pages'].search(response.text).group()[3:-1])
-            self._page_cached = page
-            for i in REGEXES['_mylist'].findall(response.text):
-                self._parse(i)
+            self.fetchPage(page)
         return self._cache.toTuple()
+
+    def fetchPage(self, page=1):
+        # if self._page_cached != page:
+        response = requests.get(
+            f"https://{self.url}/page={page}",
+            cookies=self.cookie, proxies=PROXY, headers=HEADER)
+        if response.status_code != 200:
+            return ()
+        self._page_total = int(
+            REGEXES['_pages'].search(response.text).group()[3:-1])
+        self._page_cached = page
+        for i in REGEXES['_mylist'].findall(response.text):
+            self._parse(i)
+        # return self._cache.toTuple()
 
     def _parse(self, dl_mylist: AnyStr):
         wid = int(REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
