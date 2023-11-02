@@ -30,9 +30,8 @@ del cfg
 CONFIG['start_page'] = CONFIG.get('start_page', 1)
 CONFIG['end_page'] = CONFIG.get('end_page')
 CONFIG['ignores'] = parseRegexes(CONFIG.get('ignores'))
-CONFIG['hashtags'] = parseRegexes(CONFIG.get('hashtags'))
+CONFIG['tags'] = parseRegexes(CONFIG.get('tags'))
 CONFIG['origins'] = parseRegexes(CONFIG.get('origins'))
-CONFIG['title'] = parseRegexes(CONFIG.get('title'))
 
 PROXY = CONFIG.pop('proxy', None)
 

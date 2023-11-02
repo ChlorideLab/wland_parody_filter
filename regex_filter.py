@@ -53,8 +53,8 @@ def filterPassage(self: WlandPassage,
     which in other words, must satisfy ALL the following conditions:
 
     1. NOBODY matched anyone of `regexes['ignores']`.
-    2. AT LEAST ONE item matched one of `regexes['hashtags']`
-    `regexes['title']` and `regexes['origins']`, respectively.
+    2. AT LEAST ONE tag OR title matched one of `regexes['tags']`.
+    3. one of the origin hashtags matched one of `regexes['origins']`.
 
     Those keywords with empty sequence (NOT `None`!) means we skip checking it.
     """
@@ -63,8 +63,8 @@ def filterPassage(self: WlandPassage,
         merged |= self.tags
 
     return (_inhibitor(regexes['ignores'], merged)
-            and _finder(regexes['hashtags'], self.tags)
-            and _finder(regexes['title'], [self.title], fullstr=False)
+            and (_finder(regexes['tags'], self.tags)
+                 or _finder(regexes['tags'], [self.title], fullstr=False))
             and _finder(regexes['origins'], self.hashtags))
 
 
@@ -74,7 +74,7 @@ async def filterPageRange(self: WlandParody,
     """Filter through pages.
 
     C version condition expression:
-        `!ignored && a_tag_picked && title_picked && an_origin_picked`\n
+        `!ignored && (a_tag_picked || title_picked) && an_origin_picked`\n
     See `help(filterPassage)` for detailed conditions.
 
     Arguments:
@@ -88,7 +88,7 @@ async def filterPageRange(self: WlandParody,
         - `end_page`: def to `None` (auto).
         - `ignores`: regexes (must be `Sequence[re.Pattern]`)
         to inhibit negative findings. def to `()`.
-        - `title` `origins` `hashtags`: regexes (must be `Sequence[Pattern]`)
+        - `origins` `tags`: regexes (must be `Sequence[Pattern]`)
         to search expect results. def to `()`.
     """
     start, end, total = kwargs['start_page'], kwargs['end_page'], self.page_num
