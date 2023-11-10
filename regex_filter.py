@@ -91,7 +91,12 @@ async def filterPageRange(self: WlandParody,
         - `origins` `tags`: regexes (must be `Sequence[Pattern]`)
         to search expect results. def to `()`.
     """
-    start, end, total = kwargs['start_page'], kwargs['end_page'], self.page_num
+    start, end = kwargs['start_page'], kwargs['end_page']
+    try:
+        total = self.page_num
+    except Exception as e:
+        logging.critical(e)
+        total = -1
     if not 0 < start <= total:
         return
     if end is None or end < start or end > total:
