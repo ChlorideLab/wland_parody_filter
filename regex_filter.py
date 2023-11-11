@@ -32,10 +32,11 @@ def _inhibitor(src: Sequence[Pattern], dst):  # , *, neglect=False):
 def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
     if not src:
         return True
+    if not dst:
+        return False  # should also assert title. see filterPassage()
 
     dst = tuple(dst)
     found = False
-    _ = None  # dst could be empty (tags).
     for i in src:
         j = 0
         while j < len(dst) and (_ := i.search(dst[j])) is None:
@@ -58,10 +59,7 @@ def filterPassage(self: WlandPassage,
 
     Those keywords with empty sequence (NOT `None`!) means we skip checking it.
     """
-    merged = self.hashtags | {self.title}
-    if self.tags:
-        merged |= self.tags
-
+    merged = self.hashtags | self.tags | {self.title}
     return (_inhibitor(regexes['ignores'], merged)
             and (_finder(regexes['tags'], self.tags)
                  or _finder(regexes['tags'], [self.title], fullstr=False))
@@ -117,7 +115,7 @@ async def filterPageRange(self: WlandParody,
         for c in contents:
             if not filterPassage(c, kwargs):
                 continue
-            logging.debug(f"Pick {c}")
+            print(f"Pick {c}")
             if file.stream is not None:
                 await file.append(c)
         thread.join()  # must be finished when next page coming

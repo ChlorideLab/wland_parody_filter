@@ -21,6 +21,10 @@ class WlandPassage(Struct):
     hashtags: Set[str]  # should NOT be empty
     tags: Set[str]  # MAY BE EMPTY
 
+    def __str__(self) -> str:
+        return f"wid{self.wid}: {self.title}" + \
+            f" by {self.author_name}(u{self.author_uid})"
+
 
 class _CycleCache:  # to skip when contents updated.
     def __init__(self, capacity):
