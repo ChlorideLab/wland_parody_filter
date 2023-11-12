@@ -3,7 +3,7 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
-from typing import AnyStr, List
+from typing import AnyStr
 from typing import NamedTuple as Struct
 from typing import Optional, Set
 
@@ -25,28 +25,23 @@ class WlandPassage(Struct):
         return f"wid{self.wid}: {self.title}" + \
             f" by {self.author_name}(u{self.author_uid})"
 
-
-class _CycleCache:  # to skip when contents updated.
-    def __init__(self, capacity):
-        self.__lst: List[Optional[WlandPassage]] = [None] * capacity
-        self._max = capacity
-        self._cur = 0
-
-    def store(self, elem):
-        self.__lst[self._cur] = elem
-        self._cur = (self._cur + 1) % self._max
-
-    def find(self, wid: int):
-        i, j = self._cur, 0
-        while (j < self._max and self.__lst[i] and self.__lst[i].wid != wid):
-            i = (i + 1) % self._max
-            j += 1
-        self._cur = (i if (j := j == self._max or not self.__lst[i])
-                     else i + 1) % self._max
-        return not j
-
-    def toTuple(self):
-        return tuple(self.__lst)
+    @classmethod
+    def parseHTML(cls, dl_mylist: AnyStr):
+        wid = int(REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
+        title = REGEXES['title'].search(dl_mylist).group()
+        if not (title := REGEXES['HTML'].sub('', title)):
+            title = "NO TITLE"
+        author = REGEXES['author'].search(dl_mylist).group()
+        category = REGEXES['category'].findall(dl_mylist)
+        return cls(wid, title, **{
+            'author_uid': int(REGEXES['INT'].search(author).group()),
+            'author_name': REGEXES['HTML'].sub('', author),
+            'hashtags': set(REGEXES['TAG'].sub('', category[0])
+                            .replace('</span>', '')
+                            .split(' , ')),
+            'tags': set(REGEXES['TAG'].sub('', category[1])
+                        .replace('</span>', '')
+                        .split(' , ')) if len(category) > 1 else set()})
 
 
 class WlandParody:
@@ -55,53 +50,28 @@ class WlandParody:
         The user information will be automatically collected."""
         self.url = f'{url}/special/{parody}'
         self.cookie = cookies.chrome(domain_name=url) if adult else None
-        self._cache = _CycleCache(10)
-        self._page_cached = 0
-        self._page_total = 0
+        self._session = requests.Session()
+        self._session.headers.update(HEADER)
+        self._session.proxies = PROXY
+        self._page_cur = -1
+        self._fetched: Optional[requests.Response] = None
 
     def __repr__(self):
         return self.url
 
     @property
     def page_num(self):
-        if not self._page_total:
+        if self._fetched is None or self._fetched.status_code != 200:
             self.fetchPage()
-        return self._page_total
+        return int(REGEXES['_pages'].search(self._fetched.text).group()[3:-1])
 
-    def getPage(self, page=1):
-        if self._page_cached != page:
+    def getPage(self, page):
+        if page != self._page_cur or self._fetched.status_code != 200:
             self.fetchPage(page)
-        return self._cache.toTuple()
+        return self._fetched
 
     def fetchPage(self, page=1):
-        # if self._page_cached != page:
-        response = requests.get(
-            f"https://{self.url}/page={page}",
-            cookies=self.cookie, proxies=PROXY, headers=HEADER)
-        if response.status_code != 200:
-            return ()
-        self._page_total = int(
-            REGEXES['_pages'].search(response.text).group()[3:-1])
-        self._page_cached = page
-        for i in REGEXES['_mylist'].findall(response.text):
-            self._parse(i)
-        # return self._cache.toTuple()
-
-    def _parse(self, dl_mylist: AnyStr):
-        wid = int(REGEXES['wid'].search(dl_mylist).group().replace('wid', ''))
-        if self._cache.find(wid):
-            return
-        title = REGEXES['title'].search(dl_mylist).group()
-        if not (title := REGEXES['HTML'].sub('', title)):
-            title = "NO TITLE"
-        author = REGEXES['author'].search(dl_mylist).group()
-        category = REGEXES['category'].findall(dl_mylist)
-        self._cache.store(WlandPassage(wid, title, **{
-            'author_uid': int(REGEXES['INT'].search(author).group()),
-            'author_name': REGEXES['HTML'].sub('', author),
-            'hashtags': set(REGEXES['TAG'].sub('', category[0])
-                            .replace('</span>', '')
-                            .split(' , ')),
-            'tags': set(REGEXES['TAG'].sub('', category[1])
-                        .replace('</span>', '')
-                        .split(' , ')) if len(category) > 1 else set()}))
+        self._fetched = self._session.get(
+            f"https://{self.url}/page={page}", cookies=self.cookie)
+        self._page_cur = page
+        return self._fetched.status_code == 200

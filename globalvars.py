@@ -11,6 +11,9 @@ from typing import Sequence
 import yaml
 
 
+INT32_MAX = 2 << 30
+
+
 def parseRegexes(seq) -> Sequence[Pattern]:
     if seq is None:
         seq = ()
@@ -28,7 +31,7 @@ with open("./config.yaml", 'r', encoding="utf-8") as cfg:
 del cfg
 
 CONFIG['start_page'] = CONFIG.get('start_page', 1)
-CONFIG['end_page'] = CONFIG.get('end_page')
+CONFIG['end_page'] = CONFIG.get('end_page', INT32_MAX)
 CONFIG['ignores'] = parseRegexes(CONFIG.get('ignores'))
 CONFIG['tags'] = parseRegexes(CONFIG.get('tags'))
 CONFIG['origins'] = parseRegexes(CONFIG.get('origins'))

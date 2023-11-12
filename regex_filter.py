@@ -8,8 +8,9 @@ import logging
 from random import random
 from re import Pattern
 from threading import Thread
-from typing import Mapping, Sequence
+from typing import List, Mapping, Optional, Sequence
 
+from globalvars import REGEXES
 from renderer import SheetGenerator
 from wland import WlandParody, WlandPassage
 
@@ -44,6 +45,27 @@ def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
         if found := _ is not None and (not fullstr or _.group() == dst[j]):
             break
     return found
+
+
+class _PageCache:  # to skip when contents updated.
+    def __init__(self, size=10):
+        self.__lst: List[Optional[WlandPassage]] = [None] * size
+        self._max = size
+        self._cur = 0
+        self.page_cached = -1
+
+    def store(self, elem):
+        self.__lst[self._cur] = elem
+        self._cur = (self._cur + 1) % self._max
+
+    def find(self, wid: int):
+        i, j = self._cur, 0
+        while (j < self._max and self.__lst[i] and self.__lst[i].wid != wid):
+            i = (i + 1) % self._max
+            j += 1
+        self._cur = (i if (j := j == self._max or not self.__lst[i])
+                     else i + 1) % self._max
+        return not j
 
 
 def filterPassage(self: WlandPassage,
@@ -83,28 +105,31 @@ async def filterPageRange(self: WlandParody,
         Should be able to just extract `globalvars.CONFIG`.
 
         - `start_page`: def to 1.
-        - `end_page`: def to `None` (auto).
+        - `end_page`: def to INT32_MAX (auto).
         - `ignores`: regexes (must be `Sequence[re.Pattern]`)
         to inhibit negative findings. def to `()`.
         - `origins` `tags`: regexes (must be `Sequence[Pattern]`)
         to search expect results. def to `()`.
     """
     start, end = kwargs['start_page'], kwargs['end_page']
+    if not 0 < start <= end:  # basic skip
+        return
     try:
-        total = self.page_num
+        total = self.page_num if self.fetchPage(start) else -1
+        if start > total:
+            return
+        if end > total:
+            end = total
     except Exception as e:
         logging.critical(e)
-        total = -1
-    if not 0 < start <= total:
         return
-    if end is None or end < start or end > total:
-        end = total
 
     await file.open()
+    cache = _PageCache()  # To skip repeat checking.
     while (start <= end):
-        logging.info(f"Fetching page {start} / {end}")
+        logging.info(f"Processing page {start} / {end}")
         try:
-            contents = self.getPage(start)
+            pagecur = self.getPage(start)
             thread = Thread(target=self.fetchPage, args=(start + 1,))
             thread.daemon = True
             await asyncio.sleep(random() + 1)  # [1, 2) secs
@@ -112,12 +137,16 @@ async def filterPageRange(self: WlandParody,
         except Exception as e:
             logging.critical(e)
             break
-        for c in contents:
-            if not filterPassage(c, kwargs):
+        for i in REGEXES['_mylist'].findall(pagecur.text):
+            i = WlandPassage.parseHTML(i)
+            if cache.find(i.wid):
                 continue
-            print(f"Pick {c}")
+            cache.store(i)
+            if not filterPassage(i, kwargs):
+                continue
+            print(f"Pick {i}")
             if file.stream is not None:
-                await file.append(c)
+                await file.append(i)
         thread.join()  # must be finished when next page coming
         start += 1
     await file.close()
