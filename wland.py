@@ -10,7 +10,7 @@ from typing import Optional, Set
 import browser_cookie3 as cookies
 import requests
 
-from globalvars import REGEXES, HEADER, PROXY
+from globalvars import HEADER, PROXY, REGEXES
 
 
 class WlandPassage(Struct):

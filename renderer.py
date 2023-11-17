@@ -11,7 +11,6 @@ from aiofiles.threadpool.text import AsyncTextIOWrapper
 
 from wland import WlandPassage
 
-
 AUTHOR = "Author"
 TITLE = "Title"
 ORIGINS = "Origins"

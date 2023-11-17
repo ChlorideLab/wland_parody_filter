@@ -3,13 +3,12 @@
 # @Time   : 2023/10/30 22:27:40
 # @Author : Chloride
 
+from re import Pattern
 from re import S as FULL_MATCH
 from re import compile as regex
-from re import Pattern
 from typing import Sequence
 
 import yaml
-
 
 INT32_MAX = 2 << 30
 
