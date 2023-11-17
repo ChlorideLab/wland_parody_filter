@@ -52,7 +52,6 @@ class _PageCache:  # to skip when contents updated.
         self.__lst: List[Optional[WlandPassage]] = [None] * size
         self._max = size
         self._cur = 0
-        self.page_cached = -1
 
     def store(self, elem):
         self.__lst[self._cur] = elem
@@ -114,28 +113,22 @@ async def filterPageRange(self: WlandParody,
     start, end = kwargs['start_page'], kwargs['end_page']
     if not 0 < start <= end:  # basic skip
         return
-    try:
-        total = self.page_num if self.fetchPage(start) else -1
-        if start > total:
-            return
-        if end > total:
-            end = total
-    except Exception as e:
-        logging.critical(e)
-        return
+    total = self.page_num if self.fetchPage(start) else -1
+    if end > total:
+        end = total
 
     await file.open()
     cache = _PageCache()  # To skip repeat checking.
     while (start <= end):
         logging.info(f"Processing page {start} / {end}")
-        try:
-            pagecur = self.getPage(start)
+        pagecur = self.getPage(start)
+        if start != end:
             thread = Thread(target=self.fetchPage, args=(start + 1,))
             thread.daemon = True
             await asyncio.sleep(random() + 1)  # [1, 2) secs
             thread.start()
-        except Exception as e:
-            logging.critical(e)
+        if pagecur is None:
+            logging.error("Failed even after retry. Stop filtering.")
             break
         for i in REGEXES['_mylist'].findall(pagecur.text):
             i = WlandPassage.parseHTML(i)

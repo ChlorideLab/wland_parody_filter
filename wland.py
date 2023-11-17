@@ -3,6 +3,7 @@
 # @Time   : 2023/08/04 12:50:13
 # @Author : Chloride
 
+import logging
 from typing import AnyStr
 from typing import NamedTuple as Struct
 from typing import Optional, Set
@@ -61,7 +62,7 @@ class WlandParody:
 
     @property
     def page_num(self):
-        if self._fetched is None or self._fetched.status_code != 200:
+        if not self._fetched or self._fetched.status_code != 200:
             self.fetchPage()
         return int(REGEXES['_pages'].search(self._fetched.text).group()[3:-1])
 
@@ -71,7 +72,13 @@ class WlandParody:
         return self._fetched
 
     def fetchPage(self, page=1):
-        self._fetched = self._session.get(
-            f"https://{self.url}/page={page}", cookies=self.cookie)
-        self._page_cur = page
-        return self._fetched.status_code == 200
+        try:
+            self._fetched = self._session.get(
+                f"https://{self.url}/page={page}", cookies=self.cookie)
+            self._page_cur = page
+        except requests.RequestException as e:
+            logging.warning(f"Failed to fetch p{page}: {e.__class__.__name__}")
+            print(f"Details: \n\t{e.args}")
+            self._fetched = None
+            self._page_cur = -1
+        return self._fetched is not None and self._fetched.status_code == 200

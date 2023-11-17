@@ -103,14 +103,8 @@ proxy:
 
 ## 异常处理
 - 还没开始爬就报错：请**先关闭所有浏览器**。
-- 在挂了代理的情况下，有可能出现以下错误：**建议关闭加速器**重试。有更好的办法欢迎分享。
-
-```log
-[2023-08-14 16:12:26,406] CRITICAL: Abnormal network!
-  HTTPSConnectionPool(host='...', port=443): Max retries exceeded with url: ... (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1002)')))
-[2023-09-15 00:09:40,399] CRITICAL: Abnormal network!
-  ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
-```
+- 为确保 Wland 和您账号的可持续发展，爬取过程中的网络异常会被程序自行捕获，并及时中止爬取。
+> 如您**使用了代理软件**却**未**在配置中[设置端口](#关于代理)，不妨**退出代理**重试。
 
 ## 产出结果 `wland.*`
 默认是`wland.csv`，可以用 Excel 或记事本打开。  
