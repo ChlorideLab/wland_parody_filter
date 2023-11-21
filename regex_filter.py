@@ -122,14 +122,14 @@ async def filterPageRange(self: WlandParody,
     while (start <= end):
         logging.info(f"Processing page {start} / {end}")
         pagecur = self.getPage(start)
+        if pagecur is None:
+            logging.error("Failed even after retry. Stop filtering.")
+            break
         if start != end:
             thread = Thread(target=self.fetchPage, args=(start + 1,))
             thread.daemon = True
             await asyncio.sleep(random() + 1)  # [1, 2) secs
             thread.start()
-        if pagecur is None:
-            logging.error("Failed even after retry. Stop filtering.")
-            break
         for i in REGEXES['_mylist'].findall(pagecur.text):
             i = WlandPassage.parseHTML(i)
             if cache.find(i.wid):
