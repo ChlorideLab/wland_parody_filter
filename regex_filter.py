@@ -118,7 +118,7 @@ async def filterPageRange(self: WlandParody,
         end = total
 
     await file.open()
-    cache = _PageCache()  # To skip repeat checking.
+    cache, thread = _PageCache(), None
     while (start <= end):
         logging.info(f"Processing page {start} / {end}")
         pagecur = self.getPage(start)
@@ -140,6 +140,7 @@ async def filterPageRange(self: WlandParody,
             print(i)
             if file.stream is not None:
                 await file.append(i)
-        thread.join()  # must be finished when next page coming
+        if thread is not None:
+            thread.join()  # must be finished when next page coming
         start += 1
     await file.close()
