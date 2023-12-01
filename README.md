@@ -31,14 +31,14 @@
 2. 标题**或**标签符合`tags`要求。（顺序从左到右）
 3. 原型符合`origins`要求。
 
-上述`ignores` `tags` `origins`均为[正则表达式](https://gitlab.com/ChlorideP/wland_parody_filter/blob/master/README.REGEX.md)的集合。  
-您也可以直接像查百度那样，直接把关键词罗列进配置文件。往下翻就知道怎么写了。
-
 > 所谓「符合要求」，是指在目标范围内，找到**一条**符合限定规则**之一**的记录。  
 > 比如匹配标签，就是在「这些标签当中」，找到「其中一条」符合「其中一个要求」的 Tag。
 
 > 就我个人的发现，一般说的 Tag 更有可能出现在标签和标题；而原型更像是描述「相关人物」。  
 > ~~当然，同人站点是自由的（~~
+
+上述`ignores` `tags` `origins`均为[正则表达式](https://gitlab.com/ChlorideP/wland_parody_filter/blob/master/README.REGEX.md)的集合。  
+您也可以直接像查百度那样，直接把关键词罗列进配置文件。往下翻就知道怎么写了。
 
 从配置文件中**删除**某一环节，或者**为某一环节置`null`**，则跳过该环节（认为符合要求/未被屏蔽）。
 
@@ -85,21 +85,34 @@ proxy:
 - 为确保 Wland 和您账号的可持续发展，爬取过程中的网络异常会被程序自行捕获，并及时中止爬取。
 > 如您**使用了代理软件**却**未**在配置中[设置端口](#关于代理)，不妨**退出代理**重试。
 
-## 产出结果 `wland.*`
+## 产出结果
+
+### 控制台输出
+为了防止意外情况导致“筛了个寂寞”，运行过程会**先行显示经过筛选的文章**。
+
+> 大致格式如下：
+> ```log
+> wid#######	title	author_name (uid#####)
+> ```
+> 由于不同文本引擎对制表符`\t`的处理各有千秋，实际各列之间的空隙可能更大。  
+> 超过 15 字的标题会被截断，并用`...`表示。
+
+### 表格文件 `wland.*`
+
 默认是`wland.csv`，可以用 Excel 或记事本打开。
 但 CSV 不适合插入链接，因此 WID 和 UID 均会直接给出。
 
 除`CSV`外，`renderer.py`还提供了`.md`和`.html`文件的支持。  
 MarkDown 更面向文档作者，HTML 则对读者更友好。二者均能通过链接跳转至对应的网页。
 
-如需更改，可在`main.py`里将
-```python
-sheet_file = renderer.CSV('./wland.csv')
-```
-替换为其他格式：
-```python
-sheet_file = renderer.MarkDown('./wland.md', CONFIG['domain'])
-```
-```python
-sheet_file = renderer.HTML('./wland.html', CONFIG['domain'])
-```
+> 如需更改，可在`main.py`里将
+> ```python
+> sheet_file = renderer.CSV('./wland.csv')
+> ```
+> 替换为其他格式：
+> ```python
+> sheet_file = renderer.MarkDown('./wland.md', CONFIG['domain'])
+> ```
+> ```python
+> sheet_file = renderer.HTML('./wland.html', CONFIG['domain'])
+> ```

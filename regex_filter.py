@@ -137,7 +137,7 @@ async def filterPageRange(self: WlandParody,
             cache.store(i)
             if not filterPassage(i, kwargs):
                 continue
-            print(f"Pick {i}")
+            print(i)
             if file.stream is not None:
                 await file.append(i)
         thread.join()  # must be finished when next page coming

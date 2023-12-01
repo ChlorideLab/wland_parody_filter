@@ -23,8 +23,11 @@ class WlandPassage(Struct):
     tags: Set[str]  # MAY BE EMPTY
 
     def __str__(self) -> str:
-        return f"wid{self.wid}: {self.title}" + \
-            f" by {self.author_name}(u{self.author_uid})"
+        title = "{:20.20}".format(self.title)
+        if self.title not in title:
+            title += '...'
+        return "wid%s\t%s\t%s (u%s)" % (
+                self.wid, title, self.author_name, self.author_uid)
 
     @classmethod
     def parseHTML(cls, dl_mylist: AnyStr):
