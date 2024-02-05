@@ -174,3 +174,13 @@ class HTML(SheetGenerator):
         if await self.stream.writable():
             await self.stream.write('</table></body></html>\n')
         return await super().close()
+
+
+def initSheet(ft: str, url) -> SheetGenerator:
+    ft = f'./wland.{ft.lower()}'
+    if ft.endswith(('html', 'htm'),):
+        return HTML(ft, url)
+    elif ft.endswith('md'):
+        return MarkDown(ft, url)
+    else:
+        return CSV(ft)

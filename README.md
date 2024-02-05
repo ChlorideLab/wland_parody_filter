@@ -59,9 +59,10 @@ domain: X.com   # wland 域名
 start_page: 1   # 1 <= 起始页 <= 最后页 <= 最大页数
 end_page: 2147483648  # 会自动改为分区实际页数（但往往不可能全部爬完）
 adult: False    # 是否包含“成年”以上分级
+output: csv    # 筛选结果保存为 (HTML CSV MD) 何种文件。不区分大小写。
 
 # 下列选项均允许 直接删除、留空、只填一个、填入多个 四种处理。
-# 直接删除与留空效果一致。
+# 直接删除与留空效果一致：即跳过检查。
 
 ignores: null   # 屏蔽正则（优先检查。留空示例）
 tags:          # 标签、标题正则（次优先。填入多个示例）
@@ -105,14 +106,7 @@ proxy:
 除`CSV`外，`renderer.py`还提供了`.md`和`.html`文件的支持。  
 MarkDown 更面向文档作者，HTML 则对读者更友好。二者均能通过链接跳转至对应的网页。
 
-> 如需更改，可在`main.py`里将
-> ```python
-> sheet_file = renderer.CSV('./wland.csv')
-> ```
-> 替换为其他格式：
-> ```python
-> sheet_file = renderer.MarkDown('./wland.md', CONFIG['domain'])
-> ```
-> ```python
-> sheet_file = renderer.HTML('./wland.html', CONFIG['domain'])
-> ```
+现在可以在[配置文件](#配置文件-configyaml)中`output`字段指定文件格式了：
+- HTML：`html`
+- MarkDown：`md`
+- CSV：`csv`
