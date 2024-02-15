@@ -8,7 +8,7 @@ import logging
 from random import random
 from re import Pattern
 from threading import Thread
-from typing import List, Mapping, Optional, Sequence
+from typing import Mapping, Sequence
 
 from globalvars import REGEXES
 from renderer import SheetGenerator
@@ -45,26 +45,6 @@ def _finder(src: Sequence[Pattern], dst, *, fullstr=True):
         if found := _ is not None and (not fullstr or _.group() == dst[j]):
             break
     return found
-
-
-class _PageCache:  # to skip when contents updated.
-    def __init__(self, size=10):
-        self.__lst: List[Optional[WlandPassage]] = [None] * size
-        self._max = size
-        self._cur = 0
-
-    def store(self, elem):
-        self.__lst[self._cur] = elem
-        self._cur = (self._cur + 1) % self._max
-
-    def find(self, wid: int):
-        i, j = self._cur, 0
-        while (j < self._max and self.__lst[i] and self.__lst[i].wid != wid):
-            i = (i + 1) % self._max
-            j += 1
-        self._cur = (i if (j := j == self._max or not self.__lst[i])
-                     else i + 1) % self._max
-        return not j
 
 
 def filterPassage(self: WlandPassage,
@@ -118,7 +98,7 @@ async def filterPageRange(self: WlandParody,
         end = total
 
     await file.open()
-    cache, thread = _PageCache(), None
+    cache, thread = set(), None
     while (start <= end):
         logging.info(f"Processing page {start} / {end}")
         pagecur = self.getPage(start)
@@ -132,9 +112,9 @@ async def filterPageRange(self: WlandParody,
             thread.start()
         for i in REGEXES['_mylist'].findall(pagecur.text):
             i = WlandPassage.parseHTML(i)
-            if cache.find(i.wid):
+            if i.wid in cache:
                 continue
-            cache.store(i)
+            cache.add(i.wid)
             if not filterPassage(i, kwargs):
                 continue
             print(i)
