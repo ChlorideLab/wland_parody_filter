@@ -15,7 +15,7 @@
 ## Wland 文章条目
 为便于后面解释，姑且放一张样图：
 
-![Example](https://github.com/ChlorideLab/wland_parody_filter/raw/main/img/example.jpg)
+![Example](https://github.com/ChlorideP/wland_parody_filter/raw/main/img/example.jpg)
 
 - 标题 `Title`：虚线上方的加粗文本
 - 作者 `Author`：如图所示
@@ -37,7 +37,7 @@
 > 就我个人的发现，一般说的 Tag 更有可能出现在标签和标题；而原型更像是描述「相关人物」。  
 > ~~当然，同人站点是自由的（~~
 
-上述`ignores` `tags` `origins`均为[正则表达式](https://github.com/ChlorideLab/wland_parody_filter/blob/main/README.REGEX.md)的集合。  
+上述`ignores` `tags` `origins`均为[正则表达式](https://github.com/ChlorideP/wland_parody_filter/blob/main/README.REGEX.md)的集合。  
 您也可以直接像查百度那样，直接把关键词罗列进配置文件。往下翻就知道怎么写了。
 
 从配置文件中**删除**某一环节，或者**为某一环节置`null`**，则跳过该环节（认为符合要求/未被屏蔽）。
@@ -93,10 +93,9 @@ proxy:
 
 > 大致格式如下：
 > ```log
-> wid#######	title	author_name (uid#####)
+> wid#######    title    by author (uid#####)
 > ```
-> 由于不同文本引擎对制表符`\t`的处理各有千秋，实际各列之间的空隙可能更大。  
-> 超过 15 字的标题会被截断，并用`...`表示。
+> 标题`title`会截取前 15 个字。超出部分用`...`截断。
 
 ### 表格文件 `wland.*`
 

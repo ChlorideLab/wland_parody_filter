@@ -23,10 +23,10 @@ class WlandPassage(Struct):
     tags: Set[str]  # MAY BE EMPTY
 
     def __str__(self) -> str:
-        title = "{:20.20}".format(self.title)
+        title = "{:15.15}".format(self.title)
         if self.title not in title:
             title += '...'
-        return "wid%s\t%s\t%s (u%s)" % (
+        return "wid{0: <8}    {1}    by {2} (u{3})".format(
                 self.wid, title, self.author_name, self.author_uid)
 
     @classmethod

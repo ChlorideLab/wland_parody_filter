@@ -22,4 +22,4 @@ if __name__ == '__main__':
         CONFIG.get('adult', False))  # def not to explicit R18
     sheet_file = initSheet(CONFIG.get('output', 'csv'), CONFIG['domain'])
     asyncio.run(filterPageRange(parody, sheet_file, **CONFIG))
-    print("Done.")
+    logging.info("Done.")
