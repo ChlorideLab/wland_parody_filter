@@ -93,7 +93,7 @@ proxy:
 
 > 大致格式如下：
 > ```log
-> wid#######    title    by author (uid#####)
+> wid#######  title by author (uid#####)
 > ```
 > 标题`title`会截取前 15 个字。超出部分用`...`截断。
 
